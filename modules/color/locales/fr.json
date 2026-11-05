@@ -19,6 +19,7 @@
   "recent": "Couleurs récentes",
   "reuse": "Reprendre {value}",
   "take": "Prendre une couleur à l’écran",
+  "takeFailed": "Impossible de prendre une couleur à l’écran",
   "names": {
     "red": "Rouge",
     "cherry": "Rouge cerise",

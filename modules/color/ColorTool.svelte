@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { Button, Icon, pickScreenColor, TextField, toast, type ToolProps } from '@arthex/sdk';
+  import { Button, Icon, moduleNative, TextField, toast, type ToolProps } from '@arthex/sdk';
   import { formats, fromHsv, parseColor, toHex, toHsv, type Color } from './color';
   import ColorWheel from './ColorWheel.svelte';
   import { t } from './i18n';
-  import { ICON } from './identity';
+  import { ICON, ID } from './identity';
   import { exactName } from './names';
   import { recent } from './recent.svelte';
 
@@ -62,7 +62,13 @@
   }
 
   async function takeFromScreen() {
-    const hex = await pickScreenColor();
+    let hex: string | null;
+    try {
+      hex = await moduleNative(ID).callHidden<string | null>('pick');
+    } catch {
+      toast(t('takeFailed'));
+      return;
+    }
     const taken = hex ? parseColor(hex) : null;
     if (!hex || !taken) return;
     jumpTo(taken);

@@ -19,6 +19,7 @@
   "recent": "Recent colors",
   "reuse": "Use {value} again",
   "take": "Take a color from the screen",
+  "takeFailed": "Could not take a color from the screen",
   "names": {
     "red": "Red",
     "cherry": "Cherry red",
