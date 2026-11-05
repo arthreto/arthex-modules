@@ -11,5 +11,5 @@ Rules for anyone (human or AI) working on the Arthex modules. The rules of Arthe
 - Reuse the SDK: the UI kit, `toast`, `moduleTranslator` and `moduleNative`. A module never redefines a button, switch, modal or card. Its system access lives in its `native/` program.
 - Every visible string goes through the module's locales, in English and French.
 - Work and push directly on `main`. Commits are in English, short and imperative, authored as the owner (`arthreto <86776616+arthreto@users.noreply.github.com>`), with no co-author or session trailers.
-- Two markdown files only: `README.md`, written for the users of the modules, and this file. How to build and release a module belongs in `arthex/docs/DEVELOPMENT.md`.
+- Two markdown files only: `README.md`, written for the users of the modules, and this file. In the README: never list every module: name a few followed by "etc.", or none, so that adding a module changes no README. How to build and release a module belongs in `arthex/docs/DEVELOPMENT.md`.
 - The `arthex` submodule only moves with `git submodule update --remote arthex`, in a commit of its own.
