@@ -19,6 +19,8 @@ You can also download a `.arthex` file from the [Releases](https://github.com/ar
 
 Made by [arthreto](https://github.com/arthreto).
 
+Some modules include [FFmpeg](https://ffmpeg.org), under the LGPL, in a [build by BtbN](https://github.com/BtbN/FFmpeg-Builds) whose sources are published there.
+
 Want to make a module? See the [developer guide](https://github.com/arthreto/Arthex/blob/main/docs/DEVELOPMENT.md#make-an-installable-module).
 
 Released under the [PolyForm Noncommercial 1.0.0](https://github.com/arthreto/Arthex/blob/main/LICENSE) license, as Arthex.

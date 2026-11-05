@@ -2,3 +2,4 @@ node_modules/
 dist/
 dev-modules/
 modules/*/native/target/
+modules/*/native/bundle/
