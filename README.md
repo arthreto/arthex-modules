@@ -13,7 +13,7 @@
 
 You can also download a `.arthex` file from the [Releases](https://github.com/arthreto/arthex-modules/releases) page and open it.
 
-**Check for updates** in the Catalog shows when a module has a new version. Each part of a module can be turned off in **Settings → Modules**.
+The refresh button next to the tabs looks for new versions. Click a module in the Catalog to see what it adds. Each part of a module can be turned off in **Settings → Modules**.
 
 ## Credits
 
