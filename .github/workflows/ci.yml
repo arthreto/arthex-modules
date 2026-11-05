@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  modules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - run: npm ci
+      - name: Check and build every module
+        shell: bash
+        run: |
+          shopt -s nullglob
+          modules=(modules/*/)
+          if [ ${#modules[@]} -eq 0 ]; then
+            echo "No module yet."
+            exit 0
+          fi
+          npm run check
+          for module in "${modules[@]}"; do
+            npm run build -- "$module" --out dev-modules
+            cargo_toml="${module}native/Cargo.toml"
+            if [ -f "$cargo_toml" ]; then
+              cargo fmt --check --manifest-path "$cargo_toml"
+              cargo clippy --manifest-path "$cargo_toml" --all-targets --locked -- -D warnings
+              cargo test --manifest-path "$cargo_toml" --locked
+            fi
+          done

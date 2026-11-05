@@ -1,0 +1,23 @@
+{
+  "name": "arthex-modules",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings",
+    "build": "arthex build",
+    "pack": "arthex pack",
+    "catalog": "arthex catalog"
+  },
+  "devDependencies": {
+    "@arthex/sdk": "file:arthex/sdk",
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "@tauri-apps/cli": "^2.12.4",
+    "@tsconfig/svelte": "^5.0.8",
+    "@types/node": "^22.19.0",
+    "intl-messageformat": "^12.1.4",
+    "svelte": "^5.57.3",
+    "svelte-check": "^4.7.8",
+    "typescript": "~6.0.3",
+    "vite": "^8.3.5"
+  }
+}

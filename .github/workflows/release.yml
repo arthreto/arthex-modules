@@ -1,0 +1,58 @@
+name: Release
+
+# Packs and signs every module, then publishes them with a signed catalog as the latest release,
+# where Arthex reads it. Programs are built for Windows x64; a module without one runs anywhere.
+
+on:
+  push:
+    branches: [main]
+    paths: ['modules/**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          submodules: true
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+      - run: npm ci
+      - name: Pack and sign every module
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          shopt -s nullglob
+          modules=(modules/*/)
+          if [ ${#modules[@]} -eq 0 ]; then
+            echo "No module to release."
+            exit 0
+          fi
+          for module in "${modules[@]}"; do
+            npm run pack -- "$module" --out dist
+          done
+          npm run catalog -- dist
+      - name: Publish
+        if: hashFiles('dist/catalog.json') != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "catalog-${{ github.run_number }}"
+          dist/*.arthex dist/catalog.json dist/catalog.json.sig
+          --title "Modules ${{ github.run_number }}"
+          --notes "Modules catalog built from ${{ github.sha }}."
+          --latest

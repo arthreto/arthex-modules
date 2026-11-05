@@ -1,0 +1,3 @@
+[submodule "arthex"]
+	path = arthex
+	url = https://github.com/arthreto/Arthex
