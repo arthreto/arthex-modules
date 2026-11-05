@@ -132,6 +132,6 @@ mod tests {
         let template: Template = serde_json::from_str(r#"{"id":"a","kind":"watching"}"#).unwrap();
         assert_eq!(template.kind, Kind::Watching);
         assert_eq!(template.show, Show::Name);
-        assert!(template.buttons.is_empty());
+        assert_eq!(template.buttons, Vec::new());
     }
 }
