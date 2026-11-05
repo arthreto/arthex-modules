@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/arthreto/Arthex/main/src/assets/logo.png" alt="Arthex" width="96" height="96">
+  <img src="assets/logo.png" alt="Arthex" width="96" height="96">
 </p>
 
 <h1 align="center">Arthex modules</h1>
@@ -21,7 +21,7 @@
 
 You can also download a `.arthex` file from the [Releases](https://github.com/arthreto/arthex-modules/releases) page and open it.
 
-**Check for updates** in the Catalog shows when a module has a new version. Each part of a module can be turned off in **Settings → Modules → Installed**.
+**Check for updates** in the Catalog shows when a module has a new version. Each part of a module can be turned off in **Settings → Modules**.
 
 ## Discord RPC
 
