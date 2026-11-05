@@ -39,6 +39,7 @@ jobs:
             exit 0
           fi
           npm run check
+          npm test
           for module in "${modules[@]}"; do
             npm run build -- "$module" --out dev-modules
             cargo_toml="${module}native/Cargo.toml"

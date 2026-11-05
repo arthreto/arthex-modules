@@ -12,6 +12,7 @@ modules/<id>/            one folder per module
   manifest.ts            what the module is and the elements it provides
   locales/<lang>.json    its texts: "name", "description", "keywords", then its own
   *.svelte               its views (page, Home card, tool…)
+  *.test.ts              tests of its pure logic, run by `npm test`
   native/                its program, if it needs the system (optional Cargo project)
 .github/workflows/       CI (every push) and Release (every change to modules/ on main)
 ```
