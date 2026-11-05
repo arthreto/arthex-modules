@@ -1,0 +1,23 @@
+{
+  "name": "TextLift",
+  "description": "Récupère le texte d’une image, d’une capture ou de l’écran.",
+  "catalog": {
+    "tool": "Sélection d’une zone, texte modifiable et copie"
+  },
+  "keywords": "text scraper texte ocr extraire lire image capture copier",
+  "contextMenu": {
+    "get-text": "Récupérer le texte"
+  },
+  "image": "L’image : trace une zone pour choisir son texte",
+  "text": "Texte",
+  "textField": "Texte récupéré",
+  "language": "Langue",
+  "copy": "Copier",
+  "copied": "Texte copié",
+  "openImage": "Ouvrir une image",
+  "takeFromScreen": "Prendre à l’écran",
+  "propose": "Proposer après une capture",
+  "noText": "Aucun texte dans cette zone",
+  "noLanguage": "Aucune langue de lecture n’est installée dans Windows",
+  "failed": "Impossible de lire cette image"
+}

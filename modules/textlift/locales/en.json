@@ -1,0 +1,23 @@
+{
+  "name": "TextLift",
+  "description": "Get the text of an image, a screenshot or anything on the screen.",
+  "catalog": {
+    "tool": "Choose a zone, edit the text and copy it"
+  },
+  "keywords": "text scraper ocr extract read image screenshot copy",
+  "contextMenu": {
+    "get-text": "Get text"
+  },
+  "image": "The image: trace a zone to choose its text",
+  "text": "Text",
+  "textField": "Text found",
+  "language": "Language",
+  "copy": "Copy",
+  "copied": "Text copied",
+  "openImage": "Open an image",
+  "takeFromScreen": "Take from the screen",
+  "propose": "Offer after a screenshot",
+  "noText": "No text in this zone",
+  "noLanguage": "No reading language is installed in Windows",
+  "failed": "Could not read this image"
+}
