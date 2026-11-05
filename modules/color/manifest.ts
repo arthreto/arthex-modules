@@ -4,7 +4,7 @@ import { colorSearch } from './search';
 
 export default defineModule({
   id: ID,
-  version: '1.1.0',
+  version: '1.1.1',
   api: 3,
   icon: ICON,
   tint: TINT,

@@ -23,10 +23,10 @@ use windows_sys::Win32::{
             DispatchMessageW, GetCursorPos, GetMessageW, GetSystemMetrics, HCURSOR, ICONINFO, MSG,
             PostQuitMessage, RegisterClassW, SM_CXVIRTUALSCREEN, SM_CYVIRTUALSCREEN,
             SM_XVIRTUALSCREEN, SM_YVIRTUALSCREEN, SW_SHOWNOACTIVATE, SetCursor,
-            SetForegroundWindow, ShowWindow, ULW_ALPHA, UpdateLayeredWindow, WM_ACTIVATEAPP,
-            WM_KEYDOWN, WM_LBUTTONUP, WM_MOUSEMOVE, WM_RBUTTONUP, WM_SETCURSOR, WNDCLASSW,
-            WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_EX_TRANSPARENT,
-            WS_POPUP,
+            SetForegroundWindow, SetWindowDisplayAffinity, ShowWindow, ULW_ALPHA,
+            UpdateLayeredWindow, WDA_EXCLUDEFROMCAPTURE, WM_ACTIVATEAPP, WM_KEYDOWN, WM_LBUTTONUP,
+            WM_MOUSEMOVE, WM_RBUTTONUP, WM_SETCURSOR, WNDCLASSW, WS_EX_LAYERED, WS_EX_NOACTIVATE,
+            WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_EX_TRANSPARENT, WS_POPUP,
         },
     },
 };
@@ -227,9 +227,55 @@ impl ScreenCopy {
     }
 }
 
+/// One pixel of the screen as it is at this moment. The windows of the picker must be left out of
+/// captures for this to be the real colour.
+struct LiveReader {
+    pixel: Canvas,
+}
+
+impl LiveReader {
+    fn new() -> Option<Self> {
+        Some(Self {
+            pixel: Canvas::new(1, 1)?,
+        })
+    }
+
+    fn color_at(&self, cursor: POINT) -> Option<[u8; 3]> {
+        // SAFETY: both contexts are valid for this block and the size is that of the bitmap.
+        let copied = unsafe {
+            let screen = GetDC(ptr::null_mut());
+            let copied = BitBlt(
+                self.pixel.context,
+                0,
+                0,
+                1,
+                1,
+                screen,
+                cursor.x,
+                cursor.y,
+                SRCCOPY | CAPTUREBLT,
+            );
+            ReleaseDC(ptr::null_mut(), screen);
+            copied
+        };
+        if copied == 0 {
+            return None;
+        }
+        color_at(self.pixel.pixels(), 1, 1, 0, 0)
+    }
+}
+
+/// Leaves a window out of what a capture of the screen sees. Windows before 10 version 2004 refuse.
+fn exclude_from_capture(window: HWND) -> bool {
+    // SAFETY: only changes how Windows treats our own window.
+    unsafe { SetWindowDisplayAffinity(window, WDA_EXCLUDEFROMCAPTURE) != 0 }
+}
+
 /// What the window procedure needs; everything runs on the thread of `run`.
 struct Session {
     copy: ScreenCopy,
+    /// Reads the screen as it is now. Without it, what changed after the copy keeps its old colour.
+    live: Option<LiveReader>,
     screens: Vec<RECT>,
     cursor: HCURSOR,
     tag: HWND,
@@ -285,9 +331,17 @@ fn draw_tag(session: &Session, color: [u8; 3]) -> Option<Canvas> {
     Some(canvas)
 }
 
+fn color_under_cursor(session: &Session, cursor: POINT) -> Option<[u8; 3]> {
+    session
+        .live
+        .as_ref()
+        .and_then(|live| live.color_at(cursor))
+        .or_else(|| session.copy.color_under(cursor))
+}
+
 fn follow_cursor(session: &Session) {
     let cursor = cursor_position();
-    let Some(color) = session.copy.color_under(cursor) else {
+    let Some(color) = color_under_cursor(session, cursor) else {
         return;
     };
     let Some(canvas) = draw_tag(session, color) else {
@@ -337,7 +391,7 @@ unsafe extern "system" fn window_procedure(
                 Some(0)
             }
             WM_LBUTTONUP => {
-                let color = session.copy.color_under(cursor_position());
+                let color = color_under_cursor(session, cursor_position());
                 finish(session, color.map(hex));
                 Some(0)
             }
@@ -463,6 +517,42 @@ fn create_window(class: *const u16, extended: u32) -> HWND {
     }
 }
 
+fn main_screen_scale() -> f32 {
+    // SAFETY: reads the scale of the main screen from a context released at once.
+    let dpi = unsafe {
+        let screen = GetDC(ptr::null_mut());
+        let dpi = GetDeviceCaps(screen, LOGPIXELSX.cast_signed());
+        ReleaseDC(ptr::null_mut(), screen);
+        dpi
+    };
+    #[allow(clippy::cast_precision_loss)]
+    let scale = dpi as f32 / 96.0;
+    scale
+}
+
+fn tag_font(scale: f32) -> HFONT {
+    let font_name = wide("Cascadia Mono");
+    // SAFETY: the name outlives the call; a missing font falls back to a system one.
+    unsafe {
+        CreateFontW(
+            -scaled(TAG_FONT, scale),
+            0,
+            0,
+            0,
+            FW_SEMIBOLD.cast_signed(),
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            font_name.as_ptr(),
+        )
+    }
+}
+
 /// Covers every screen with the fade until the user clicks or cancels, on the calling thread.
 pub fn run() -> Option<String> {
     // A program is scaled by Windows unless it says otherwise: on a screen at 125 %, the cursor,
@@ -483,35 +573,8 @@ pub fn run() -> Option<String> {
         RegisterClassW(&raw const description);
     }
     let screens = all_screens();
-    // SAFETY: reads the scale of the main screen from a context released at once.
-    let dpi = unsafe {
-        let screen = GetDC(ptr::null_mut());
-        let dpi = GetDeviceCaps(screen, LOGPIXELSX.cast_signed());
-        ReleaseDC(ptr::null_mut(), screen);
-        dpi
-    };
-    #[allow(clippy::cast_precision_loss)]
-    let scale = dpi as f32 / 96.0;
-    let font_name = wide("Cascadia Mono");
-    // SAFETY: the name outlives the call; a missing font falls back to a system one.
-    let font = unsafe {
-        CreateFontW(
-            -scaled(TAG_FONT, scale),
-            0,
-            0,
-            0,
-            FW_SEMIBOLD.cast_signed(),
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            font_name.as_ptr(),
-        )
-    };
+    let scale = main_screen_scale();
+    let font = tag_font(scale);
     let tag = create_window(class.as_ptr(), WS_EX_TRANSPARENT | WS_EX_NOACTIVATE);
     let cursor = create_eyedropper();
     let fades: Vec<HWND> = screens
@@ -523,8 +586,13 @@ pub fn run() -> Option<String> {
 
     let mut picked = None;
     if ready {
+        let hidden_from_captures = fades
+            .iter()
+            .chain(std::iter::once(&tag))
+            .all(|window| exclude_from_capture(*window));
         SESSION.set(Some(Session {
             copy,
+            live: hidden_from_captures.then(LiveReader::new).flatten(),
             screens: screens.clone(),
             cursor,
             tag,
