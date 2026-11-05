@@ -1,6 +1,10 @@
 {
   "name": "Color",
   "description": "Take a color from the screen and convert it to HEX, RGB, HSL and more.",
+  "catalog": {
+    "tool": "Color wheel, eyedropper and format conversion",
+    "examples": "#4CC2FF | rgb(76, 194, 255) | blue"
+  },
   "keywords": "color colors colour eyedropper palette wheel picker hex rgb rgba hsl hsv cmyk convert",
   "group": "Color",
   "format": "Format",

@@ -1,6 +1,10 @@
 {
   "name": "Convertisseur d’unités",
   "description": "Longueurs, poids, températures, données et plus, depuis la barre.",
+  "catalog": {
+    "tool": "Longueurs, poids, températures, données et plus",
+    "examples": "5 Mo | 30 cm en po"
+  },
   "keywords": "convertir convertisseur conversion unite unites km miles kg celsius octet",
   "group": "Conversions",
   "conversion": "Conversion",

@@ -1,6 +1,10 @@
 {
   "name": "Couleur",
   "description": "Prends une couleur à l’écran et convertis-la en HEX, RGB, HSL et plus.",
+  "catalog": {
+    "tool": "Roue de couleur, pipette et conversion des formats",
+    "examples": "#4CC2FF | rgb(76, 194, 255) | bleu"
+  },
   "keywords": "couleur couleurs pipette palette roue picker hex rgb rgba hsl hsv cmyk convertir",
   "group": "Couleur",
   "format": "Format",

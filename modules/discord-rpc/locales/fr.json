@@ -1,6 +1,9 @@
 {
   "name": "Discord RPC",
   "description": "Des templates de présence à activer sur ton profil Discord.",
+  "catalog": {
+    "page": "Templates de présence, aperçu et état de la connexion"
+  },
   "newTemplate": "Nouveau template",
   "newName": "Nouveau template",
   "copyName": "{name} (copie)",

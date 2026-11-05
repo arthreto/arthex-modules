@@ -1,6 +1,10 @@
 {
   "name": "Unit converter",
   "description": "Lengths, weights, temperatures, data and more, from the search bar.",
+  "catalog": {
+    "tool": "Lengths, weights, temperatures, data and more",
+    "examples": "5 MB | 30 cm in in"
+  },
   "keywords": "convert converter conversion unit units km miles kg fahrenheit bytes",
   "group": "Conversions",
   "conversion": "Conversion",

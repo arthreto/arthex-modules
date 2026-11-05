@@ -1,6 +1,9 @@
 {
   "name": "FileForge",
   "description": "Convert and compress images, videos, audio and documents.",
+  "catalog": {
+    "page": "Conversion queue, formats and settings"
+  },
   "contextMenu": {
     "compress": "Compress",
     "convert-image": "Convert to",

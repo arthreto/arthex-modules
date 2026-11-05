@@ -1,6 +1,9 @@
 {
   "name": "Discord RPC",
   "description": "Presence templates to turn on for your Discord profile.",
+  "catalog": {
+    "page": "Presence templates, preview and connection status"
+  },
   "newTemplate": "New template",
   "newName": "New template",
   "copyName": "{name} (copy)",
