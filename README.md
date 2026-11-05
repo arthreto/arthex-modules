@@ -41,6 +41,7 @@ A module with a program also needs [Rust](https://rustup.rs).
      icon: 'M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z', // 24×24 stroked SVG path
      tint: 'green',
      order: 50,
+     tags: ['time', 'productivity'], // its categories in the catalog, from the fixed list TAGS of the SDK
      locales: import.meta.glob('./locales/*.json', { eager: true, import: 'default' }),
      tool: () => import('./TimerTool.svelte'),
    });
