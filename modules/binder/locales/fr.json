@@ -5,17 +5,23 @@
     "page": "Documents par catégories, tableaux, images, vidéos et export en PDF"
   },
   "failed": "L'action a échoué",
-  "new": "Nouveau",
-  "newCategory": "Nouvelle catégorie",
+  "create": {
+    "title": "Nouveau",
+    "type": "Type",
+    "document": "Document",
+    "category": "Catégorie"
+  },
+  "menu": {
+    "newDocument": "Nouveau document",
+    "rename": "Renommer",
+    "delete": "Supprimer"
+  },
   "noCategory": "Sans catégorie",
   "untitled": "Sans titre",
   "emptyPreview": "Document vide",
   "tasksDone": "{done} / {total} tâches faites",
   "category": {
-    "add": "Nouveau document dans {name}",
-    "rename": "Renommer {name}",
     "renameTitle": "Renommer la catégorie",
-    "remove": "Supprimer {name}",
     "removeTitle": "Supprimer « {name} » ?",
     "name": "Nom",
     "create": "Créer",
@@ -25,6 +31,7 @@
   },
   "document": {
     "title": "Titre du document",
+    "renameTitle": "Renommer le document",
     "delete": "Supprimer le document",
     "deleteTitle": "Supprimer « {title} » ?",
     "deleteText": "Le document et ce qu'il contient seront effacés.",

@@ -5,17 +5,23 @@
     "page": "Documents in categories, tables, images, videos and PDF export"
   },
   "failed": "That didn't work",
-  "new": "New",
-  "newCategory": "New category",
+  "create": {
+    "title": "New",
+    "type": "Type",
+    "document": "Document",
+    "category": "Category"
+  },
+  "menu": {
+    "newDocument": "New document",
+    "rename": "Rename",
+    "delete": "Delete"
+  },
   "noCategory": "No category",
   "untitled": "Untitled",
   "emptyPreview": "Empty document",
   "tasksDone": "{done} / {total} tasks done",
   "category": {
-    "add": "New document in {name}",
-    "rename": "Rename {name}",
     "renameTitle": "Rename the category",
-    "remove": "Delete {name}",
     "removeTitle": "Delete \"{name}\"?",
     "name": "Name",
     "create": "Create",
@@ -25,6 +31,7 @@
   },
   "document": {
     "title": "Document title",
+    "renameTitle": "Rename the document",
     "delete": "Delete the document",
     "deleteTitle": "Delete \"{title}\"?",
     "deleteText": "The document and what it holds will be erased.",

@@ -81,9 +81,9 @@ class Binder {
     this.mode = this.current?.text.trim() ? 'view' : 'edit';
   }
 
-  async create(category: string | null): Promise<void> {
+  async create(category: string | null, title: string): Promise<void> {
     await this.flush();
-    const document: BinderDocument = { id: crypto.randomUUID(), title: '', category, updated: 0, text: '' };
+    const document: BinderDocument = { id: crypto.randomUUID(), title, category, updated: 0, text: '' };
     try {
       document.updated = await native.call<number>('saveDocument', document);
       this.documents = [document, ...this.documents];
@@ -122,6 +122,20 @@ class Binder {
       failed();
     } finally {
       this.saving = this.#pending !== null;
+    }
+  }
+
+  async renameDocument(id: string, title: string): Promise<void> {
+    await this.flush();
+    const document = this.documents.find((other) => other.id === id);
+    if (!document) return;
+    try {
+      const updated = await native.call<number>('saveDocument', { ...document, title });
+      this.documents = this.documents.map((other) =>
+        other.id === id ? { ...other, title, updated } : other,
+      );
+    } catch {
+      failed();
     }
   }
 

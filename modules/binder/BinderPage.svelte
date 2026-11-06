@@ -1,5 +1,16 @@
 <script lang="ts">
-  import { Button, formatWhen, Icon, IconButton, Modal, Segmented, TextField } from '@arthex/sdk';
+  import {
+    Button,
+    formatWhen,
+    Icon,
+    IconButton,
+    Menu,
+    MenuItem,
+    Modal,
+    Segmented,
+    TextField,
+    ToggleChip,
+  } from '@arthex/sdk';
   import { onDestroy, onMount } from 'svelte';
   import BinderEditor from './BinderEditor.svelte';
   import BinderView from './BinderView.svelte';
@@ -8,11 +19,16 @@
   import { t } from './i18n';
   import { firstLine, taskCount } from './markdown';
 
+  type NewKind = 'document' | 'category';
   type Dialog =
     | { kind: 'new' }
-    | { kind: 'rename'; category: Category }
+    | { kind: 'renameCategory'; category: Category }
+    | { kind: 'renameDocument'; document: BinderDocument }
     | { kind: 'removeCategory'; category: Category; count: number }
     | { kind: 'removeDocument'; document: BinderDocument };
+  type RightClickTarget =
+    { kind: 'category'; category: Category; count: number } | { kind: 'document'; document: BinderDocument };
+  type RightClick = RightClickTarget & { x: number; y: number };
 
   interface Group {
     id: string | null;
@@ -37,6 +53,17 @@
   let dropOn = $state<string | null | undefined>(undefined);
   let dialog = $state<Dialog | null>(null);
   let dialogName = $state('');
+  let newKind = $state<NewKind>('document');
+  let newCategory = $state<string | null>(null);
+  let rightClick = $state<RightClick | null>(null);
+
+  const newKinds = $derived<{ value: NewKind; label: string }[]>([
+    { value: 'document', label: t('create.document') },
+    { value: 'category', label: t('create.category') },
+  ]);
+  const needsName = $derived(
+    dialog?.kind === 'new' || dialog?.kind === 'renameCategory' || dialog?.kind === 'renameDocument',
+  );
 
   const loose = $derived(binder.documents.filter((document) => document.category === null));
   const groups = $derived.by<Group[]>(() => {
@@ -81,8 +108,23 @@
   }
 
   function ask(next: Dialog): void {
-    dialogName = next.kind === 'rename' ? next.category.name : '';
+    rightClick = null;
+    if (next.kind === 'renameCategory') dialogName = next.category.name;
+    else if (next.kind === 'renameDocument') dialogName = next.document.title;
+    else dialogName = '';
     dialog = next;
+  }
+
+  /** A new document goes where the user is, unless they say otherwise. */
+  function askNew(category: string | null): void {
+    newKind = 'document';
+    newCategory = category;
+    ask({ kind: 'new' });
+  }
+
+  function openMenu(event: MouseEvent, target: RightClickTarget): void {
+    event.preventDefault();
+    rightClick = { ...target, x: event.clientX, y: event.clientY };
   }
 
   const close = () => (dialog = null);
@@ -90,9 +132,11 @@
   function confirm(event: Event): void {
     event.preventDefault();
     const name = dialogName.trim();
-    if ((dialog?.kind === 'new' || dialog?.kind === 'rename') && !name) return;
-    if (dialog?.kind === 'new' && name) void binder.addCategory(name);
-    else if (dialog?.kind === 'rename' && name) void binder.renameCategory(dialog.category.id, name);
+    if (needsName && !name) return;
+    if (dialog?.kind === 'new' && newKind === 'document') void binder.create(newCategory, name);
+    else if (dialog?.kind === 'new') void binder.addCategory(name);
+    else if (dialog?.kind === 'renameCategory') void binder.renameCategory(dialog.category.id, name);
+    else if (dialog?.kind === 'renameDocument') void binder.renameDocument(dialog.document.id, name);
     else if (dialog?.kind === 'removeCategory') void binder.removeCategory(dialog.category.id);
     else if (dialog?.kind === 'removeDocument') void binder.remove(dialog.document);
     close();
@@ -101,9 +145,11 @@
   const dialogTitle = $derived.by(() => {
     switch (dialog?.kind) {
       case 'new':
-        return t('newCategory');
-      case 'rename':
+        return t('create.title');
+      case 'renameCategory':
         return t('category.renameTitle');
+      case 'renameDocument':
+        return t('document.renameTitle');
       case 'removeCategory':
         return t('category.removeTitle', { name: dialog.category.name });
       case 'removeDocument':
@@ -117,23 +163,20 @@
 <div class="binder fade-in">
   <div class="list scroll">
     <div class="actions">
-      <span class="new">
-        <Button onclick={() => binder.create(current?.category ?? null)}>
-          <Icon name="plus" size={14} stroke={2.2} />{t('new')}
-        </Button>
-      </span>
-      <IconButton
-        path={ICONS.folderPlus}
-        label={t('newCategory')}
-        size={36}
-        onclick={() => ask({ kind: 'new' })}
-      />
+      <Button onclick={() => askNew(current?.category ?? null)}>
+        <Icon name="plus" size={14} stroke={2.2} />{t('create.title')}
+      </Button>
     </div>
     {#each groups as group (group.id)}
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
         class="group"
         class:drop={dropOn === group.id}
+        oncontextmenu={(event) => {
+          if (group.category) {
+            openMenu(event, { kind: 'category', category: group.category, count: group.documents.length });
+          }
+        }}
         ondragover={(event) => {
           event.preventDefault();
           dropOn = group.id;
@@ -148,29 +191,6 @@
           <span class="group-name">{group.name}</span>
           <span class="count">{group.documents.length}</span>
         </button>
-        {#if group.category}
-          {@const category = group.category}
-          <span class="tools">
-            <IconButton
-              path={ICONS.plus}
-              label={t('category.add', { name: group.name })}
-              size={24}
-              onclick={() => binder.create(category.id)}
-            />
-            <IconButton
-              path={ICONS.pencil}
-              label={t('category.rename', { name: group.name })}
-              size={24}
-              onclick={() => ask({ kind: 'rename', category })}
-            />
-            <IconButton
-              icon="trash"
-              label={t('category.remove', { name: group.name })}
-              size={24}
-              onclick={() => ask({ kind: 'removeCategory', category, count: group.documents.length })}
-            />
-          </span>
-        {/if}
       </div>
       {#if !group.folded}
         {#each group.documents as document (document.id)}
@@ -188,6 +208,7 @@
               dragged = null;
               dropOn = undefined;
             }}
+            oncontextmenu={(event) => openMenu(event, { kind: 'document', document })}
             onclick={() => binder.open(document.id)}
           >
             <span class="line">
@@ -236,15 +257,77 @@
   {/if}
 </div>
 
+{#if rightClick?.kind === 'category'}
+  {@const { category, count } = rightClick}
+  <Menu x={rightClick.x} y={rightClick.y} label={category.name} onclose={() => (rightClick = null)}>
+    <MenuItem icon="plus" onclick={() => askNew(category.id)}>{t('menu.newDocument')}</MenuItem>
+    <MenuItem icon="edit" onclick={() => ask({ kind: 'renameCategory', category })}
+      >{t('menu.rename')}</MenuItem
+    >
+    <MenuItem icon="trash" danger onclick={() => ask({ kind: 'removeCategory', category, count })}>
+      {t('menu.delete')}
+    </MenuItem>
+  </Menu>
+{:else if rightClick?.kind === 'document'}
+  {@const { document } = rightClick}
+  <Menu
+    x={rightClick.x}
+    y={rightClick.y}
+    label={document.title || t('untitled')}
+    onclose={() => (rightClick = null)}
+  >
+    <MenuItem icon="edit" onclick={() => ask({ kind: 'renameDocument', document })}
+      >{t('menu.rename')}</MenuItem
+    >
+    <MenuItem icon="trash" danger onclick={() => ask({ kind: 'removeDocument', document })}>
+      {t('menu.delete')}
+    </MenuItem>
+  </Menu>
+{/if}
+
 {#if dialog}
   <Modal title={dialogTitle} onclose={close}>
     <form id="binder-dialog" onsubmit={confirm}>
-      {#if dialog.kind === 'new' || dialog.kind === 'rename'}
-        <TextField label={t('category.name')} bind:value={dialogName} maxlength={40} autofocus />
+      {#if dialog.kind === 'new'}
+        <span class="kinds">
+          <Segmented
+            label={t('create.type')}
+            options={newKinds}
+            value={newKind}
+            onchange={(kind) => (newKind = kind)}
+          />
+        </span>
+      {/if}
+      {#if needsName}
+        <TextField
+          label={t('category.name')}
+          bind:value={dialogName}
+          maxlength={dialog.kind === 'renameDocument' || newKind === 'document' ? 200 : 40}
+          autofocus
+        />
       {:else if dialog.kind === 'removeCategory'}
         <p>{dialog.count === 0 ? t('category.empty') : t('category.moves', { count: dialog.count })}</p>
       {:else}
         <p>{t('document.deleteText')}</p>
+      {/if}
+      {#if dialog.kind === 'new' && newKind === 'document'}
+        <div class="choice">
+          <span>{t('create.category')}</span>
+          <div class="chips" role="group" aria-label={t('create.category')}>
+            {#each binder.categories as category (category.id)}
+              <ToggleChip
+                label={category.name}
+                pressed={newCategory === category.id}
+                onclick={() => (newCategory = category.id)}
+              />
+            {/each}
+            <ToggleChip
+              label={t('noCategory')}
+              pressed={newCategory === null}
+              onclick={() => (newCategory = null)}
+            />
+          </div>
+        </div>
       {/if}
     </form>
     {#snippet actions()}
@@ -285,14 +368,9 @@
     gap: 6px;
   }
 
-  .new {
+  .actions :global(.button) {
     flex: 1;
     min-width: 0;
-    display: flex;
-  }
-
-  .new :global(.button) {
-    width: 100%;
   }
 
   .group {
@@ -344,18 +422,6 @@
     flex: none;
     font-weight: 400;
     color: var(--text-subtle);
-  }
-
-  .tools {
-    flex: none;
-    display: flex;
-    gap: 1px;
-    opacity: 0;
-  }
-
-  .group:hover .tools,
-  .group:focus-within .tools {
-    opacity: 1;
   }
 
   .entry {
@@ -449,7 +515,31 @@
     color: var(--text-subtle);
   }
 
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
   form p {
     font-size: 14px;
+  }
+
+  .kinds {
+    align-self: flex-start;
+  }
+
+  .choice {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
   }
 </style>
