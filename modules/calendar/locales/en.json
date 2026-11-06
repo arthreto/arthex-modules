@@ -1,0 +1,90 @@
+{
+  "name": "Calendar",
+  "description": "Your events and deadlines, with a reminder on the screen.",
+  "catalog": {
+    "page": "Week, month, three months or year, with deadlines from one date to another"
+  },
+  "levels": {
+    "label": "Scale",
+    "week": "Week",
+    "month": "Month",
+    "quarter": "3 months",
+    "year": "Year"
+  },
+  "previous": "Previous",
+  "next": "Next",
+  "today": "Today",
+  "add": "Add",
+  "period": {
+    "week": "{from} to {to}"
+  },
+  "day": {
+    "label": "Chosen day",
+    "empty": "Nothing that day"
+  },
+  "time": {
+    "hour": "{hour}:00",
+    "minute": "{hour}:{minute}"
+  },
+  "range": {
+    "span": "{from} to {to}",
+    "over": "Finished",
+    "endsToday": "Ends today",
+    "starts": "Starts in {count} d",
+    "left": "{count, plural, one {# day left} other {# days left}}"
+  },
+  "item": {
+    "at": "{title}, {from} to {to}",
+    "rangeAt": "{title}, {from} at {fromTime} to {to} at {toTime}"
+  },
+  "editor": {
+    "newEvent": "New event",
+    "newRange": "New deadline",
+    "edit": "Edit",
+    "kind": "Type",
+    "event": "Event",
+    "range": "Deadline",
+    "title": "Title",
+    "date": "Date",
+    "start": "Start",
+    "end": "End",
+    "from": "From",
+    "to": "To",
+    "at": "At",
+    "reminder": "On-screen reminder",
+    "color": "Color",
+    "bad": "The end must come after the start",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saveFailed": "Could not save"
+  },
+  "reminders": {
+    "none": "None",
+    "atStart": "On time",
+    "minutes10": "10 min before",
+    "hour1": "1 h before",
+    "hourEnd": "1 h before the end",
+    "day1": "1 day before",
+    "days3": "3 days before"
+  },
+  "tints": {
+    "sky": "Blue",
+    "violet": "Violet",
+    "green": "Green",
+    "orange": "Orange",
+    "pink": "Pink",
+    "red": "Red"
+  },
+  "card": {
+    "title": "Coming up",
+    "today": "Today",
+    "empty": "Nothing planned"
+  },
+  "hints": {
+    "period": "Change period",
+    "zoom": "Zoom",
+    "ctrl": "Ctrl",
+    "wheel": "Wheel"
+  }
+}

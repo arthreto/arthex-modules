@@ -1,0 +1,90 @@
+{
+  "name": "Calendrier",
+  "description": "Tes évènements et échéances, avec un rappel à l’écran.",
+  "catalog": {
+    "page": "Semaine, mois, trois mois ou année, avec des échéances d’une date à une autre"
+  },
+  "levels": {
+    "label": "Échelle",
+    "week": "Semaine",
+    "month": "Mois",
+    "quarter": "3 mois",
+    "year": "Année"
+  },
+  "previous": "Précédent",
+  "next": "Suivant",
+  "today": "Aujourd’hui",
+  "add": "Ajouter",
+  "period": {
+    "week": "Du {from} au {to}"
+  },
+  "day": {
+    "label": "Jour choisi",
+    "empty": "Rien ce jour-là"
+  },
+  "time": {
+    "hour": "{hour} h",
+    "minute": "{hour} h {minute}"
+  },
+  "range": {
+    "span": "Du {from} au {to}",
+    "over": "Terminé",
+    "endsToday": "Se termine aujourd’hui",
+    "starts": "Commence dans {count} j",
+    "left": "{count, plural, one {Reste # jour} other {Reste # jours}}"
+  },
+  "item": {
+    "at": "{title}, {from} à {to}",
+    "rangeAt": "{title}, du {from} à {fromTime} au {to} à {toTime}"
+  },
+  "editor": {
+    "newEvent": "Nouvel évènement",
+    "newRange": "Nouvelle échéance",
+    "edit": "Modifier",
+    "kind": "Type",
+    "event": "Évènement",
+    "range": "Échéance",
+    "title": "Titre",
+    "date": "Date",
+    "start": "Début",
+    "end": "Fin",
+    "from": "Du",
+    "to": "Au",
+    "at": "À",
+    "reminder": "Rappel à l’écran",
+    "color": "Couleur",
+    "bad": "La fin doit être après le début",
+    "delete": "Supprimer",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "saveFailed": "Impossible d’enregistrer"
+  },
+  "reminders": {
+    "none": "Aucun",
+    "atStart": "À l’heure",
+    "minutes10": "10 min avant",
+    "hour1": "1 h avant",
+    "hourEnd": "1 h avant la fin",
+    "day1": "1 jour avant",
+    "days3": "3 jours avant"
+  },
+  "tints": {
+    "sky": "Bleu",
+    "violet": "Violet",
+    "green": "Vert",
+    "orange": "Orange",
+    "pink": "Rose",
+    "red": "Rouge"
+  },
+  "card": {
+    "title": "À venir",
+    "today": "Aujourd’hui",
+    "empty": "Rien de prévu"
+  },
+  "hints": {
+    "period": "Changer de période",
+    "zoom": "Zoomer",
+    "ctrl": "Ctrl",
+    "wheel": "Molette"
+  }
+}
