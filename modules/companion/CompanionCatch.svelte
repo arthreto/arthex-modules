@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
-  import { clampedX, isOver, secondsLeft, startCatch, step, TICK_MS, type CatchState } from './catch';
+  import { clampedX, isOver, secondsLeft, startCatch, step, type CatchState } from './catch';
   import GameHeader from './GameHeader.svelte';
   import Mascot from './Mascot.svelte';
   import { companion } from './companion.svelte';
@@ -8,41 +8,50 @@
 
   const COUNTDOWN = 3;
   const COUNT_MS = 1000;
+  /** After a pause, such as the overlay closing, the game goes on where it was. */
+  const LONGEST_FRAME_MS = 100;
 
-  let game = $state<CatchState>(startCatch());
+  let game = $state.raw<CatchState>(startCatch());
   let count = $state(COUNTDOWN);
   let mascotX = $state(50);
-  let timer: ReturnType<typeof setInterval> | undefined;
+  let pointerX = 50;
+  let countdown: ReturnType<typeof setInterval> | undefined;
+  let frame = 0;
+  let lastFrame: number | undefined;
 
   const mascot = $derived(companion.mascot);
 
-  function play(): void {
-    timer = setInterval(() => {
-      game = step(game, mascotX);
-      if (isOver(game)) {
-        clearInterval(timer);
-        void companion.finish('catch', t('catch.result', { count: game.score }), game.score);
-      }
-    }, TICK_MS);
+  function advance(now: number): void {
+    frame = requestAnimationFrame(advance);
+    const ms = Math.min(now - (lastFrame ?? now), LONGEST_FRAME_MS);
+    lastFrame = now;
+    mascotX = pointerX;
+    if (count > 0) return;
+    game = step(game, pointerX, ms);
+    if (isOver(game)) {
+      cancelAnimationFrame(frame);
+      void companion.finish('catch', t('catch.result', { count: game.score }), game.score);
+    }
   }
 
   function move(event: MouseEvent): void {
     if (!(event.currentTarget instanceof HTMLElement)) return;
     const box = event.currentTarget.getBoundingClientRect();
-    mascotX = clampedX(((event.clientX - box.left) / box.width) * 100);
+    pointerX = clampedX(((event.clientX - box.left) / box.width) * 100);
   }
 
   onMount(() => {
-    timer = setInterval(() => {
+    frame = requestAnimationFrame(advance);
+    countdown = setInterval(() => {
       count -= 1;
-      if (count === 0) {
-        clearInterval(timer);
-        play();
-      }
+      if (count === 0) clearInterval(countdown);
     }, COUNT_MS);
   });
 
-  onDestroy(() => clearInterval(timer));
+  onDestroy(() => {
+    clearInterval(countdown);
+    cancelAnimationFrame(frame);
+  });
 </script>
 
 {#if mascot?.species}
@@ -58,12 +67,10 @@
         <span
           class="item"
           class:trap={item.trap}
-          style:left="{item.x}%"
-          style:top="{item.y}%"
-          style:transform="rotate({item.turn}deg)"
+          style:transform="translate({item.x}cqw, {item.y}cqh) rotate({item.turn}deg)"
         ></span>
       {/each}
-      <div class="player" style:left="{mascotX}%">
+      <div class="player" style:transform="translateX({mascotX}cqw)">
         <Mascot species={mascot.species} mood={count > 0 ? 'idle' : 'walk'} wear={mascot.wear} size={140} />
       </div>
       {#if count > 0}
@@ -93,6 +100,8 @@
     border-radius: 16px;
     overflow: hidden;
     cursor: none;
+    /* Moving by transforms alone, so that nothing is laid out again under the blur of the overlay. */
+    container-type: size;
     background: var(--surface);
     border: 1px solid var(--border);
   }
@@ -109,9 +118,12 @@
 
   .item {
     position: absolute;
+    left: 0;
+    top: 0;
     width: 30px;
     height: 30px;
     margin-left: -15px;
+    will-change: transform;
     border-radius: 50%;
     background: #c98a4b;
     border: 2px solid #8a5a2b;
@@ -125,8 +137,10 @@
 
   .player {
     position: absolute;
+    left: 0;
     bottom: 6px;
     margin-left: -70px;
+    will-change: transform;
     width: 140px;
     height: 140px;
     pointer-events: none;
