@@ -1,0 +1,84 @@
+{
+  "name": "Companion",
+  "description": "A mascot to raise, with small games.",
+  "catalog": {
+    "page": "Your mascot, its room, its games and its shop"
+  },
+  "failed": "That didn't work",
+  "back": "Back",
+  "play": "Play",
+  "replay": "Play again",
+  "level": "Level {level}",
+  "xpLabel": "Experience",
+  "kibble": "+{count} kibble",
+  "animals": {
+    "fox": "Fox",
+    "dog": "Dog",
+    "cat": "Cat",
+    "wolf": "Wolf"
+  },
+  "adopt": {
+    "name": "Name",
+    "placeholder": "Its name",
+    "confirm": "Adopt"
+  },
+  "games": {
+    "hide": "Hide and seek",
+    "catch": "Catch",
+    "memory": "Memory",
+    "pet": "Cuddles",
+    "flair": "Flair"
+  },
+  "screen": {
+    "label": "On my screen"
+  },
+  "frequency": {
+    "label": "Frequency",
+    "rare": "Rare",
+    "normal": "Normal",
+    "often": "Often"
+  },
+  "catch": {
+    "status": "{score} · {seconds} s",
+    "result": "{count} kibble caught"
+  },
+  "memory": {
+    "moves": "{count, plural, one {# move} other {# moves}}",
+    "card": "Card {number}"
+  },
+  "pet": {
+    "action": "Pet {name}",
+    "progress": "Today's cuddles",
+    "result": "Well cuddled"
+  },
+  "flair": {
+    "size": "{size} MB to download",
+    "words": "{count} million words",
+    "askDelete": "Delete the {size} MB?",
+    "keep": "Keep",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "downloading": "Downloading",
+    "failed": "The download didn't finish",
+    "tries": "{count, plural, one {# try} other {# tries}}",
+    "word": "Word",
+    "placeholder": "Suggest a word",
+    "try": "Try",
+    "giveUp": "Give up",
+    "tried": "Already tried",
+    "unknown": "I don't know \"{word}\"",
+    "found": "Found: {word} in {tries, plural, one {# try} other {# tries}}",
+    "itWas": "It was: {word}"
+  },
+  "shop": {
+    "title": "Shop",
+    "balance": "{count} kibble",
+    "scarf": "Scarf",
+    "glasses": "Glasses",
+    "bow": "Bow",
+    "crown": "Crown",
+    "wear": "Wear",
+    "remove": "Remove",
+    "price": "{count} kibble"
+  }
+}

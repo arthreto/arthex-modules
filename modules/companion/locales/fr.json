@@ -1,0 +1,84 @@
+{
+  "name": "Compagnon",
+  "description": "Une mascotte à élever, avec des petits jeux.",
+  "catalog": {
+    "page": "Ta mascotte, sa pièce, ses jeux et sa boutique"
+  },
+  "failed": "L'action a échoué",
+  "back": "Retour",
+  "play": "Jouer",
+  "replay": "Rejouer",
+  "level": "Niveau {level}",
+  "xpLabel": "Expérience",
+  "kibble": "+{count, plural, one {# croquette} other {# croquettes}}",
+  "animals": {
+    "fox": "Renard",
+    "dog": "Chien",
+    "cat": "Chat",
+    "wolf": "Loup"
+  },
+  "adopt": {
+    "name": "Nom",
+    "placeholder": "Son nom",
+    "confirm": "Adopter"
+  },
+  "games": {
+    "hide": "Cache-cache",
+    "catch": "Attrape",
+    "memory": "Memory",
+    "pet": "Caresses",
+    "flair": "Flair"
+  },
+  "screen": {
+    "label": "Sur mon écran"
+  },
+  "frequency": {
+    "label": "Fréquence",
+    "rare": "Rare",
+    "normal": "Normale",
+    "often": "Souvent"
+  },
+  "catch": {
+    "status": "{score} · {seconds} s",
+    "result": "{count, plural, one {# croquette attrapée} other {# croquettes attrapées}}"
+  },
+  "memory": {
+    "moves": "{count, plural, one {# coup} other {# coups}}",
+    "card": "Carte {number}"
+  },
+  "pet": {
+    "action": "Caresser {name}",
+    "progress": "Caresses du jour",
+    "result": "Bien câliné"
+  },
+  "flair": {
+    "size": "{size} Mo à télécharger",
+    "words": "{count} million de mots",
+    "askDelete": "Supprimer les {size} Mo ?",
+    "keep": "Garder",
+    "delete": "Supprimer",
+    "cancel": "Annuler",
+    "downloading": "Téléchargement",
+    "failed": "Le téléchargement n'a pas abouti",
+    "tries": "{count, plural, one {# essai} other {# essais}}",
+    "word": "Mot",
+    "placeholder": "Propose un mot",
+    "try": "Essayer",
+    "giveUp": "Abandonner",
+    "tried": "Déjà proposé",
+    "unknown": "Je ne connais pas « {word} »",
+    "found": "Trouvé : {word} en {tries, plural, one {# essai} other {# essais}}",
+    "itWas": "C'était : {word}"
+  },
+  "shop": {
+    "title": "Boutique",
+    "balance": "{count, plural, one {# croquette} other {# croquettes}}",
+    "scarf": "Foulard",
+    "glasses": "Lunettes",
+    "bow": "Nœud",
+    "crown": "Couronne",
+    "wear": "Porter",
+    "remove": "Retirer",
+    "price": "{count, plural, one {# croquette} other {# croquettes}}"
+  }
+}
