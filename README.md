@@ -21,6 +21,8 @@ Made by [arthreto](https://github.com/arthreto).
 
 Some modules include [FFmpeg](https://ffmpeg.org), under the LGPL, in a [build by BtbN](https://github.com/BtbN/FFmpeg-Builds) whose sources are published there.
 
+The Downloader module includes [yt-dlp](https://github.com/yt-dlp/yt-dlp), as the program its authors publish, under the [GPLv3 or later](https://www.gnu.org/licenses/gpl-3.0.html) with its sources published there, and [QuickJS](https://github.com/quickjs-ng/quickjs), under the MIT license. It is for what you have the right to download.
+
 The word game of the Companion module downloads its words, when it is turned on, from the [fastText](https://fasttext.cc) word vectors by Facebook AI Research, under the [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) license. They are rounded and lowered, and [published](https://github.com/arthreto/arthex-modules/releases/tag/flair-data-1) under the same license.
 
 Want to make a module? See the [developer guide](https://github.com/arthreto/Arthex/blob/main/docs/DEVELOPMENT.md#make-an-installable-module).

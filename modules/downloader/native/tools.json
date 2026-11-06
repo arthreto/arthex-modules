@@ -1,0 +1,11 @@
+{
+  "ytdlp": {
+    "tag": "2026.10.26",
+    "sha256": "fd51b212cf8380c7a52ee08c0d6be7f3c59b2f2c832eaf7b45acfae6eab57419"
+  },
+  "quickjs": {
+    "tag": "v0.18.0",
+    "sha256": "ff03398d74ea6e6bd3a8e58058f7003225abcac229d7d57775b7aaae812a49c7",
+    "license": "96f73f9d2a16c21a36b418f06073be26e7d6d5e7c1bc99756b21a4f2c74ef171"
+  }
+}

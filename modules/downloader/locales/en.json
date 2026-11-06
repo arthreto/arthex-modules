@@ -1,0 +1,41 @@
+{
+  "name": "Downloader",
+  "description": "Download a video or a sound from its link.",
+  "catalog": {
+    "tool": "Video or sound from a link, in the format and quality you choose",
+    "search": "Links of supported sites",
+    "examples": "youtube.com/watch?v=… | tiktok.com/@… | downloader"
+  },
+  "keywords": "downloader download video audio music youtube tiktok dailymotion vimeo mp4 mp3 link",
+  "toolGroup": "Tools",
+  "toolKind": "Tool",
+  "open": "Open",
+  "downloadFrom": "Download from {site}",
+  "link": "Link",
+  "linkHint": "Paste a link",
+  "type": "Type",
+  "video": "Video",
+  "audio": "Audio",
+  "format": "Format",
+  "quality": "Quality",
+  "bitrate": "{value} kbit/s",
+  "folder": "Folder",
+  "change": "Change",
+  "download": "Download",
+  "downloading": "Downloading",
+  "cancel": "Cancel",
+  "speed": "{value}/s",
+  "secondsLeft": "{count, plural, one {# s left} other {# s left}}",
+  "minutesLeft": "{count} min left",
+  "finishing": "Finishing",
+  "showInFolder": "Show in folder",
+  "openFile": "Open",
+  "failedAction": "That did not work",
+  "failures": {
+    "unsupported": "This link is not supported",
+    "protected": "This video is protected and cannot be downloaded",
+    "unavailable": "This video is not available",
+    "network": "Could not reach the site",
+    "other": "The download failed"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "name": "Téléchargeur",
+  "description": "Télécharge une vidéo ou un son depuis son lien.",
+  "catalog": {
+    "tool": "Vidéo ou son depuis un lien, dans le format et la qualité de ton choix",
+    "search": "Liens des sites pris en charge",
+    "examples": "youtube.com/watch?v=… | tiktok.com/@… | téléchargeur"
+  },
+  "keywords": "telechargeur telecharger downloader download video audio musique youtube tiktok dailymotion vimeo mp4 mp3 lien",
+  "toolGroup": "Outils",
+  "toolKind": "Outil",
+  "open": "Ouvrir",
+  "downloadFrom": "Télécharger depuis {site}",
+  "link": "Lien",
+  "linkHint": "Colle un lien",
+  "type": "Type",
+  "video": "Vidéo",
+  "audio": "Audio",
+  "format": "Format",
+  "quality": "Qualité",
+  "bitrate": "{value} kbit/s",
+  "folder": "Dossier",
+  "change": "Changer",
+  "download": "Télécharger",
+  "downloading": "Téléchargement",
+  "cancel": "Annuler",
+  "speed": "{value}/s",
+  "secondsLeft": "{count, plural, one {# s restante} other {# s restantes}}",
+  "minutesLeft": "{count} min restantes",
+  "finishing": "Finalisation",
+  "showInFolder": "Afficher dans le dossier",
+  "openFile": "Ouvrir",
+  "failedAction": "Ça n’a pas marché",
+  "failures": {
+    "unsupported": "Ce lien n’est pas pris en charge",
+    "protected": "Cette vidéo est protégée et ne peut pas être téléchargée",
+    "unavailable": "Cette vidéo n’est pas disponible",
+    "network": "Impossible de joindre le site",
+    "other": "Le téléchargement a échoué"
+  }
+}
