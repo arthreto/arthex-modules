@@ -30,13 +30,27 @@ describe('memory', () => {
     expect(state.moves).toBe(1);
   });
 
-  it('ignores a card already open or found, and a third one', () => {
+  it('ignores a card already open or found', () => {
     const one = flip(small(), 0);
     expect(flip(one, 0)).toBe(one);
-    const two = flip(one, 1);
-    expect(flip(two, 2)).toBe(two);
-    const found = settle(flip(one, 2));
+    const found = flip(one, 2);
     expect(flip(found, 0)).toBe(found);
+  });
+
+  it('finds a matching pair at once', () => {
+    const state = flip(flip(small(), 0), 2);
+    expect(state.done).toEqual([0, 2]);
+    expect(state.open).toEqual([]);
+    expect(state.moves).toBe(1);
+  });
+
+  it('never makes the player wait: a next card puts away a wrong pair', () => {
+    const wrong = flip(flip(small(), 0), 1);
+    expect(wrong.open).toEqual([0, 1]);
+    const next = flip(wrong, 2);
+    expect(next.open).toEqual([2]);
+    expect(next.moves).toBe(1);
+    expect(flip(wrong, 1).open).toEqual([1]);
   });
 
   it('settles only once two are open', () => {

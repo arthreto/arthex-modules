@@ -1,4 +1,4 @@
-/** The rules of the "Memory" game: 6 pairs, always two cards open at the most. */
+/** The rules of the "Memory" game: 6 pairs, and never a wait to play the next card. */
 
 export const PICTURES = [
   { icon: 'M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10Z', tint: 'pink' },
@@ -32,13 +32,18 @@ export function dealCards(random: () => number = Math.random): MemoryState {
   return { cards, open: [], done: [], moves: 0 };
 }
 
+/** A pair that matches is found at once. The next card puts away a pair that does not. */
 export function flip(state: MemoryState, card: number): MemoryState {
-  if (state.open.length >= 2 || state.open.includes(card) || state.done.includes(card)) return state;
-  const open = [...state.open, card];
-  return { ...state, open, moves: open.length === 2 ? state.moves + 1 : state.moves };
+  const ready = state.open.length >= 2 ? settle(state) : state;
+  if (ready.open.includes(card) || ready.done.includes(card)) return ready;
+  const open = [...ready.open, card];
+  if (open.length < 2) return { ...ready, open };
+  const [first, second] = open;
+  const played = { ...ready, open, moves: ready.moves + 1 };
+  return ready.cards[first ?? -1] === ready.cards[second ?? -1] ? settle(played) : played;
 }
 
-/** After a moment to see them: the two open cards stay found if they match, or turn back. */
+/** The two open cards stay found if they match, or turn back. */
 export function settle(state: MemoryState): MemoryState {
   const [first, second] = state.open;
   if (first === undefined || second === undefined) return state;

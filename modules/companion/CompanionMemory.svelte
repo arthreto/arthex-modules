@@ -15,12 +15,17 @@
   const mascot = $derived(companion.mascot);
 
   function turn(card: number): void {
+    if (isWon(game)) return;
+    clearTimeout(timer);
     game = flip(game, card);
-    if (game.open.length < 2) return;
-    timer = setTimeout(() => {
-      game = settle(game);
-      if (isWon(game)) void companion.finish('memory', t('memory.moves', { count: game.moves }));
-    }, SEEN_MS);
+    if (isWon(game)) {
+      timer = setTimeout(
+        () => void companion.finish('memory', t('memory.moves', { count: game.moves })),
+        SEEN_MS,
+      );
+    } else if (game.open.length === 2) {
+      timer = setTimeout(() => (game = settle(game)), SEEN_MS);
+    }
   }
 
   onDestroy(() => clearTimeout(timer));
