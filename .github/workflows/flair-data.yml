@@ -1,0 +1,33 @@
+name: Flair data
+
+# Builds the files of words of the Flair game from fastText and publishes them in their own release,
+# which the Companion module downloads when a player turns the game on. It is never the latest
+# release, which holds the catalog. A new tag only makes sense with new hashes in `flair.rs`.
+
+on:
+  push:
+    tags: ['flair-data-*']
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Build the files
+        run: |
+          base=https://dl.fbaipublicfiles.com/fasttext/vectors-crawl
+          python3 flair-data/build.py "$base/cc.fr.300.vec.gz" fr.bin > fr.log
+          python3 flair-data/build.py "$base/cc.en.300.vec.gz" en.bin > en.log
+          { echo "fr: $(tail -n 1 fr.log)"; echo "en: $(tail -n 1 en.log)"; } > sums.txt
+      - name: Publish them
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" fr.bin en.bin --latest=false --title "$GITHUB_REF_NAME" \
+            --notes "Words of the Flair game, from the fastText word vectors by Facebook AI Research (https://fasttext.cc), under the Creative Commons Attribution-ShareAlike 3.0 license. The vectors are rounded to one byte per dimension and the words lowered.
+
+          $(cat sums.txt)"
