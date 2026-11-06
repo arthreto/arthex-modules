@@ -6,7 +6,7 @@ name: Release
 on:
   push:
     branches: [main]
-    paths: ['modules/**']
+    paths: ['modules/**', 'shared/**']
   workflow_dispatch:
 
 permissions:
@@ -45,6 +45,9 @@ jobs:
           fi
           for module in "${modules[@]}"; do
             npm run pack -- "$module" --out dist
+          done
+          for part in shared/*/; do
+            npm run pack-shared -- "$part" --out dist
           done
           npm run catalog -- dist
       - name: Publish

@@ -56,11 +56,11 @@ pub struct Shared {
 }
 
 impl Shared {
-    pub fn new(settings: Settings, events: Events) -> Arc<Self> {
-        let ffmpeg = std::env::current_exe()
-            .ok()
-            .and_then(|program| Some(program.parent()?.join("ffmpeg.exe")))
-            .unwrap_or_else(|| PathBuf::from("ffmpeg"));
+    pub fn new(settings: Settings, events: Events, ffmpeg: Option<&Path>) -> Arc<Self> {
+        let ffmpeg = ffmpeg.map_or_else(
+            || PathBuf::from("ffmpeg"),
+            |folder| folder.join("ffmpeg.exe"),
+        );
         let (wanted, wanted_receiver) = mpsc::channel();
         let shared = Arc::new(Self {
             queue: Mutex::new(Queue::new(settings)),

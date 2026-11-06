@@ -3,3 +3,4 @@ dist/
 dev-modules/
 modules/*/native/target/
 modules/*/native/bundle/
+shared/*/bundle/

@@ -1,6 +1,6 @@
 // Fetches FFmpeg for the package: a build without GPL parts, pinned to one file and checked against
-// its hash, so that the release holds what was reviewed. Nothing to do outside Windows, where the
-// program is only compiled for the checks.
+// its hash, so that the release holds what was reviewed. Nothing to do outside Windows, where modules
+// are only compiled for the checks.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
@@ -21,7 +21,7 @@ if (process.platform === 'win32' && !fs.existsSync(path.join(bundle, 'ffmpeg.exe
   const hash = createHash('sha256').update(archive).digest('hex');
   if (hash !== SHA256) throw new Error(`unexpected FFmpeg archive: ${hash}`);
 
-  const work = fs.mkdtempSync(path.join(os.tmpdir(), 'fileforge-ffmpeg-'));
+  const work = fs.mkdtempSync(path.join(os.tmpdir(), 'shared-ffmpeg-'));
   const zip = path.join(work, 'ffmpeg.zip');
   fs.writeFileSync(zip, archive);
   // The tar of Windows: the one Git brings reads C: as a remote host, and does not read zip files.

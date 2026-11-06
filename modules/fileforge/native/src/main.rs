@@ -38,7 +38,11 @@ impl App {
             .and_then(|bytes| serde_json::from_slice(&bytes).ok())
             .unwrap_or_default();
         Self {
-            shared: Shared::new(settings.normalized(), context.events().clone()),
+            shared: Shared::new(
+                settings.normalized(),
+                context.events().clone(),
+                context.shared("ffmpeg"),
+            ),
             settings_file,
         }
     }
