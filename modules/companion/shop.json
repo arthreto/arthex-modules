@@ -1,0 +1,96 @@
+{
+  "games": [
+    {
+      "id": "pet",
+      "price": 0,
+      "xp": 10,
+      "kibble": 10
+    },
+    {
+      "id": "catch",
+      "price": 60,
+      "xp": 20,
+      "kibble": 20
+    },
+    {
+      "id": "memory",
+      "price": 200,
+      "xp": 30,
+      "kibble": 30
+    },
+    {
+      "id": "hide",
+      "price": 400,
+      "xp": 40,
+      "kibble": 40
+    },
+    {
+      "id": "flair",
+      "price": 800,
+      "xp": 50,
+      "kibble": 50
+    }
+  ],
+  "wear": [
+    {
+      "id": "scarf",
+      "price": 30
+    },
+    {
+      "id": "flower",
+      "price": 60
+    },
+    {
+      "id": "bell",
+      "price": 80
+    },
+    {
+      "id": "cap",
+      "price": 120
+    },
+    {
+      "id": "glasses",
+      "price": 150
+    },
+    {
+      "id": "bow",
+      "price": 200
+    },
+    {
+      "id": "beanie",
+      "price": 220
+    },
+    {
+      "id": "bowtie",
+      "price": 260
+    },
+    {
+      "id": "sunglasses",
+      "price": 300
+    },
+    {
+      "id": "winter",
+      "price": 340
+    },
+    {
+      "id": "headphones",
+      "price": 400
+    },
+    {
+      "id": "party",
+      "price": 450
+    },
+    {
+      "id": "crown",
+      "price": 600
+    },
+    {
+      "id": "cape",
+      "price": 700
+    },
+    {
+      "id": "wizard",
+      "price": 800
+    }
+  ]
+}

@@ -1,30 +1,39 @@
 <script lang="ts">
-  import type { Snippet } from 'svelte';
+  import { Icon } from '@arthex/sdk';
+  import GameArt from './GameArt.svelte';
+  import { companion, type ShopGame } from './companion.svelte';
+  import { t } from './i18n';
+  import { LOCK_ICON } from './identity';
 
   interface Props {
-    label: string;
+    game: ShopGame;
     /** Its place in the room: from the left wall, or from the right one on a wide screen. */
     left?: number;
     right?: number;
     dimmed?: boolean;
-    onclick: () => void;
-    children: Snippet;
   }
 
-  let { label, left, right, dimmed = false, onclick, children }: Props = $props();
+  let { game, left, right, dimmed = false }: Props = $props();
+
+  const locked = $derived(!companion.owns(game));
+  const name = $derived(t(`games.${game}`));
 </script>
 
 <button
   type="button"
   class="toy"
-  class:dimmed
-  aria-label={label}
+  aria-label={locked ? t('locked', { name }) : name}
   style:left={left === undefined ? undefined : `${left}px`}
   style:right={right === undefined ? undefined : `${right}px`}
-  {onclick}
+  onclick={() => (locked ? (companion.view = 'shop') : companion.play(game))}
 >
-  <svg aria-hidden="true" width="92" height="92" viewBox="0 0 100 100">{@render children()}</svg>
-  <span>{label}</span>
+  <span class="art" class:dimmed class:locked><GameArt {game} size={92} /></span>
+  <span class="name">
+    {#if locked}
+      <Icon path={LOCK_ICON} size={14} />
+    {/if}
+    {name}
+  </span>
 </button>
 
 <style>
@@ -53,7 +62,14 @@
     opacity: 0.5;
   }
 
-  span {
+  .locked {
+    opacity: 0.45;
+  }
+
+  .name {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     font-size: 13px;
     font-weight: 600;
   }

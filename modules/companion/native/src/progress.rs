@@ -1,14 +1,48 @@
-use std::{fs, path::Path};
+use std::{fs, path::Path, sync::OnceLock};
 
 use serde::{Deserialize, Serialize};
 
 const FILE: &str = "companion.json";
 const MAX_NAME: usize = 20;
-const XP_PER_LEVEL: u32 = 25;
-pub const PET_GOAL: u32 = 50;
-const LONGEST_CATCH: u32 = 60;
-/// The accessories of the shop and what they cost, in kibble.
-pub const SHOP: [(&str, u32); 4] = [("scarf", 0), ("glasses", 150), ("bow", 200), ("crown", 500)];
+const XP_PER_LEVEL: u32 = 50;
+pub const PET_GOAL: u32 = 30;
+/// As many as a round can give.
+const LONGEST_CATCH: u32 = 25;
+
+#[derive(Deserialize)]
+struct ShopGame {
+    id: String,
+    price: u32,
+}
+
+#[derive(Deserialize)]
+struct ShopItem {
+    id: String,
+    price: u32,
+}
+
+/// What the shop sells and for how much, which the interface shows from the same file.
+#[derive(Deserialize)]
+struct Shop {
+    games: Vec<ShopGame>,
+    wear: Vec<ShopItem>,
+}
+
+fn shop() -> Option<&'static Shop> {
+    static SHOP: OnceLock<Option<Shop>> = OnceLock::new();
+    SHOP.get_or_init(|| serde_json::from_str(include_str!("../../shop.json")).ok())
+        .as_ref()
+}
+
+fn game_price(game: &str) -> Option<u32> {
+    let games = &shop()?.games;
+    Some(games.iter().find(|entry| entry.id == game)?.price)
+}
+
+fn item_price(item: &str) -> Option<u32> {
+    let wear = &shop()?.wear;
+    Some(wear.iter().find(|entry| entry.id == item)?.price)
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -62,14 +96,22 @@ pub enum Game {
 }
 
 impl Game {
-    fn reward(self) -> (u32, u32) {
+    pub fn reward(self) -> (u32, u32) {
         match self {
             Self::Catch { caught } => {
-                let caught = caught.min(LONGEST_CATCH);
-                (10 + caught * 2, 5 + caught)
+                let pay = 5 + caught.min(LONGEST_CATCH) * 3 / 5;
+                (pay, pay)
             }
-            Self::Memory => (30, 20),
-            Self::HideAndSeek => (30, 0),
+            Self::Memory => (30, 30),
+            Self::HideAndSeek => (40, 40),
+        }
+    }
+
+    const fn key(self) -> &'static str {
+        match self {
+            Self::Catch { .. } => "catch",
+            Self::Memory => "memory",
+            Self::HideAndSeek => "hide",
         }
     }
 }
@@ -77,8 +119,8 @@ impl Game {
 /// Finding the word pays the most of all, and more with few tries.
 pub fn word_reward(tries: u32) -> (u32, u32) {
     (
-        40 + 40u32.saturating_sub(tries * 2),
-        30 + 30u32.saturating_sub(tries),
+        50 + 40u32.saturating_sub(tries * 2),
+        50 + 30u32.saturating_sub(tries),
     )
 }
 
@@ -96,13 +138,12 @@ pub struct Progress {
     pub kibble: u32,
     pub wear: Option<String>,
     pub owned: Vec<String>,
+    pub games: Vec<String>,
+    pub pets: u32,
     #[serde(default = "default_on")]
     pub on_screen: bool,
     pub frequency: Frequency,
     pub reduced_motion: bool,
-    day: i64,
-    pets: u32,
-    pets_paid: bool,
 }
 
 /// What a finished game gave, for the screen that says so.
@@ -151,6 +192,8 @@ impl Progress {
         self.xp = 0;
         self.kibble = 0;
         self.owned = Vec::new();
+        self.games = Vec::new();
+        self.pets = 0;
         self.wear = None;
         Ok(())
     }
@@ -171,52 +214,48 @@ impl Progress {
         }
     }
 
-    pub fn finish(&mut self, game: Game) -> Gain {
-        let (xp, kibble) = game.reward();
-        self.grant(xp, kibble)
+    /// A game that costs nothing is everybody's from the start.
+    pub fn has_game(&self, game: &str) -> bool {
+        game_price(game) == Some(0) || self.games.iter().any(|owned| owned == game)
     }
 
-    fn roll_day(&mut self, day: i64) {
-        if self.day != day {
-            self.day = day;
-            self.pets = 0;
-            self.pets_paid = false;
+    pub fn finish(&mut self, game: Game) -> Result<Gain, String> {
+        if !self.has_game(game.key()) {
+            return Err("game not unlocked".to_string());
         }
+        let (xp, kibble) = game.reward();
+        Ok(self.grant(xp, kibble))
     }
 
-    pub fn pets_today(&mut self, day: i64) -> u32 {
-        self.roll_day(day);
-        self.pets
-    }
-
-    /// A stroke of the "Pet" game, which pays once a day when it is full.
-    pub fn pet(&mut self, day: i64) -> Option<Gain> {
-        self.roll_day(day);
-        if self.pets >= PET_GOAL {
+    /// A stroke of the "Pet" game, which pays each time it is full and starts over.
+    pub fn pet(&mut self) -> Option<Gain> {
+        self.pets += 1;
+        if self.pets < PET_GOAL {
             return None;
         }
-        self.pets += 1;
-        if self.pets == PET_GOAL && !self.pets_paid {
-            self.pets_paid = true;
-            return Some(self.grant(25, 10));
-        }
-        None
+        self.pets = 0;
+        Some(self.grant(10, 10))
     }
 
-    /// A click on the mascot.
-    pub fn tap(&mut self) -> Gain {
-        self.grant(1, 0)
+    pub fn buy_game(&mut self, game: &str) -> Result<(), String> {
+        let price = game_price(game).ok_or("unknown game")?;
+        if self.has_game(game) {
+            return Err("already owned".to_string());
+        }
+        if self.kibble < price {
+            return Err("not enough kibble".to_string());
+        }
+        self.kibble -= price;
+        self.games.push(game.to_string());
+        Ok(())
     }
 
     pub fn buy(&mut self, item: &str) -> Result<(), String> {
-        let (_, price) = SHOP
-            .iter()
-            .find(|(name, _)| *name == item)
-            .ok_or("unknown item")?;
+        let price = item_price(item).ok_or("unknown item")?;
         if self.owned.iter().any(|owned| owned == item) {
             return Err("already owned".to_string());
         }
-        if self.kibble < *price {
+        if self.kibble < price {
             return Err("not enough kibble".to_string());
         }
         self.kibble -= price;
@@ -272,7 +311,7 @@ mod tests {
     #[test]
     fn experience_carries_over_to_the_next_level() {
         let mut progress = adopted();
-        let gain = progress.grant(30, 5);
+        let gain = progress.grant(55, 5);
         assert!(gain.level_up);
         assert_eq!((progress.level, progress.xp, progress.kibble), (2, 5, 5));
     }
@@ -280,47 +319,116 @@ mod tests {
     #[test]
     fn a_big_gain_can_pass_several_levels() {
         let mut progress = adopted();
-        progress.grant(25 + 50 + 3, 0);
+        progress.grant(50 + 100 + 3, 0);
         assert_eq!((progress.level, progress.xp), (3, 3));
     }
 
     #[test]
     fn catching_more_pays_more_within_a_limit() {
-        assert_eq!(Game::Catch { caught: 0 }.reward(), (10, 5));
-        assert_eq!(Game::Catch { caught: 10 }.reward(), (30, 15));
-        assert_eq!(
-            Game::Catch { caught: 9999 }.reward(),
-            Game::Catch { caught: 60 }.reward()
-        );
+        assert_eq!(Game::Catch { caught: 0 }.reward(), (5, 5));
+        assert_eq!(Game::Catch { caught: 10 }.reward(), (11, 11));
+        assert_eq!(Game::Catch { caught: 9999 }.reward(), (20, 20));
     }
 
     #[test]
     fn finding_a_word_pays_the_most_and_more_with_few_tries() {
         let long_game = word_reward(100);
-        assert!(long_game.0 > Game::Memory.reward().0);
-        assert!(long_game.1 > Game::Memory.reward().1);
+        assert!(long_game.0 > Game::HideAndSeek.reward().0);
+        assert!(long_game.1 > Game::HideAndSeek.reward().1);
         assert!(word_reward(3).0 > word_reward(30).0);
-        assert_eq!(long_game, (40, 30));
+        assert_eq!(long_game, (50, 50));
+        assert_eq!(word_reward(0), (90, 80));
     }
 
     #[test]
-    fn petting_pays_once_when_full_and_comes_back_the_next_day() {
+    fn petting_pays_each_time_it_is_full() {
         let mut progress = adopted();
-        for _ in 0..PET_GOAL - 1 {
-            assert_eq!(progress.pet(1), None);
+        for _ in 0..2 {
+            for _ in 0..PET_GOAL - 1 {
+                assert_eq!(progress.pet(), None);
+            }
+            let gain = progress.pet().unwrap();
+            assert_eq!((gain.xp, gain.kibble), (10, 10));
+            assert_eq!(progress.pets, 0);
         }
-        assert_eq!(progress.pet(1).map(|gain| gain.xp), Some(25));
-        assert_eq!(progress.pet(1), None);
-        assert_eq!(progress.pets_today(1), PET_GOAL);
-        assert_eq!(progress.pets_today(2), 0);
+        assert_eq!(progress.kibble, 20);
     }
 
     #[test]
-    fn a_click_can_end_a_level() {
+    fn the_shop_says_what_the_games_pay() {
+        let games = &shop().unwrap().games;
+        let shown = |id: &str| -> (u32, u32) {
+            let text: serde_json::Value =
+                serde_json::from_str(include_str!("../../shop.json")).unwrap();
+            let games = text["games"].as_array().unwrap();
+            let game = games.iter().find(|game| game["id"] == id).unwrap();
+            (
+                u32::try_from(game["xp"].as_u64().unwrap()).unwrap(),
+                u32::try_from(game["kibble"].as_u64().unwrap()).unwrap(),
+            )
+        };
+        assert_eq!(games.len(), 5);
+        assert_eq!(shown("pet"), (10, 10));
+        assert_eq!(
+            shown("catch"),
+            Game::Catch {
+                caught: LONGEST_CATCH
+            }
+            .reward()
+        );
+        assert_eq!(shown("memory"), Game::Memory.reward());
+        assert_eq!(shown("hide"), Game::HideAndSeek.reward());
+        assert_eq!(shown("flair"), word_reward(u32::MAX / 4));
+    }
+
+    #[test]
+    fn each_game_costs_and_pays_more_than_the_one_before() {
+        let games: Vec<(u32, u32)> = [
+            ("pet", (10, 10)),
+            (
+                "catch",
+                Game::Catch {
+                    caught: LONGEST_CATCH,
+                }
+                .reward(),
+            ),
+            ("memory", Game::Memory.reward()),
+            ("hide", Game::HideAndSeek.reward()),
+            ("flair", word_reward(u32::MAX / 4)),
+        ]
+        .iter()
+        .map(|(id, (xp, _))| (game_price(id).unwrap(), *xp))
+        .collect();
+        assert!(
+            games
+                .windows(2)
+                .all(|pair| pair[0].0 < pair[1].0 && pair[0].1 < pair[1].1)
+        );
+    }
+
+    #[test]
+    fn only_petting_is_open_at_first() {
         let mut progress = adopted();
-        progress.grant(24, 0);
-        assert!(progress.tap().level_up);
-        assert_eq!((progress.level, progress.xp), (2, 0));
+        assert!(progress.has_game("pet"));
+        for game in ["catch", "memory", "hide", "flair"] {
+            assert!(!progress.has_game(game), "{game}");
+        }
+        assert!(progress.finish(Game::Memory).is_err());
+        assert_eq!(progress.xp, 0);
+    }
+
+    #[test]
+    fn a_game_is_bought_once_and_never_on_credit() {
+        let mut progress = adopted();
+        assert!(progress.buy_game("catch").is_err());
+        progress.kibble = 100;
+        progress.buy_game("catch").unwrap();
+        assert_eq!(progress.kibble, 40);
+        assert!(progress.has_game("catch"));
+        assert!(progress.finish(Game::Catch { caught: 5 }).is_ok());
+        assert!(progress.buy_game("catch").is_err());
+        assert!(progress.buy_game("pet").is_err());
+        assert!(progress.buy_game("chess").is_err());
     }
 
     #[test]
@@ -336,6 +444,7 @@ mod tests {
     fn nothing_is_bought_twice_on_credit_or_out_of_the_shop() {
         let mut progress = adopted();
         assert!(progress.buy("crown").is_err());
+        progress.kibble = 30;
         progress.buy("scarf").unwrap();
         assert!(progress.buy("scarf").is_err());
         progress.kibble = 9999;
@@ -347,6 +456,7 @@ mod tests {
     fn only_what_is_owned_can_be_worn() {
         let mut progress = adopted();
         assert!(progress.put_on(Some("crown")).is_err());
+        progress.kibble = 30;
         progress.buy("scarf").unwrap();
         progress.put_on(Some("scarf")).unwrap();
         assert_eq!(progress.wear.as_deref(), Some("scarf"));

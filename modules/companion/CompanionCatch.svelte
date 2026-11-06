@@ -1,34 +1,29 @@
 <script lang="ts">
-  import { Button } from '@arthex/sdk';
-  import { onDestroy } from 'svelte';
+  import { onDestroy, onMount } from 'svelte';
   import { clampedX, isOver, secondsLeft, startCatch, step, TICK_MS, type CatchState } from './catch';
   import GameHeader from './GameHeader.svelte';
   import Mascot from './Mascot.svelte';
   import { companion } from './companion.svelte';
   import { t } from './i18n';
 
+  const COUNTDOWN = 3;
+  const COUNT_MS = 1000;
+
   let game = $state<CatchState>(startCatch());
-  let playing = $state(false);
+  let count = $state(COUNTDOWN);
   let mascotX = $state(50);
   let timer: ReturnType<typeof setInterval> | undefined;
 
   const mascot = $derived(companion.mascot);
 
-  function start(): void {
-    game = startCatch();
-    playing = true;
+  function play(): void {
     timer = setInterval(() => {
       game = step(game, mascotX);
       if (isOver(game)) {
-        stop();
+        clearInterval(timer);
         void companion.finish('catch', t('catch.result', { count: game.score }), game.score);
       }
     }, TICK_MS);
-  }
-
-  function stop(): void {
-    clearInterval(timer);
-    playing = false;
   }
 
   function move(event: MouseEvent): void {
@@ -37,7 +32,17 @@
     mascotX = clampedX(((event.clientX - box.left) / box.width) * 100);
   }
 
-  onDestroy(stop);
+  onMount(() => {
+    timer = setInterval(() => {
+      count -= 1;
+      if (count === 0) {
+        clearInterval(timer);
+        play();
+      }
+    }, COUNT_MS);
+  });
+
+  onDestroy(() => clearInterval(timer));
 </script>
 
 {#if mascot?.species}
@@ -45,10 +50,9 @@
     <GameHeader
       title={t('games.catch')}
       status={t('catch.status', { score: game.score, seconds: secondsLeft(game) })}
-      onback={stop}
     />
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="field" class:playing onmousemove={move}>
+    <div class="field" onmousemove={move}>
       <div class="floor"></div>
       {#each game.items as item (item.id)}
         <span
@@ -60,10 +64,14 @@
         ></span>
       {/each}
       <div class="player" style:left="{mascotX}%">
-        <Mascot species={mascot.species} mood={playing ? 'walk' : 'idle'} wear={mascot.wear} size={140} />
+        <Mascot species={mascot.species} mood={count > 0 ? 'idle' : 'walk'} wear={mascot.wear} size={140} />
       </div>
-      {#if !playing}
-        <div class="start"><Button variant="primary" onclick={start}>{t('play')}</Button></div>
+      {#if count > 0}
+        <div class="countdown" aria-live="polite">
+          {#key count}
+            <span>{count}</span>
+          {/key}
+        </div>
       {/if}
     </div>
   </div>
@@ -84,12 +92,9 @@
     min-height: 0;
     border-radius: 16px;
     overflow: hidden;
+    cursor: none;
     background: var(--surface);
     border: 1px solid var(--border);
-  }
-
-  .playing {
-    cursor: none;
   }
 
   .floor {
@@ -127,19 +132,39 @@
     pointer-events: none;
   }
 
-  .start {
+  .countdown {
     position: absolute;
     left: 0;
     right: 0;
-    top: 16px;
+    top: 0;
+    bottom: 56px;
     display: flex;
+    align-items: center;
     justify-content: center;
+    pointer-events: none;
+    font-size: 110px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
   }
 
-  .start :global(.button) {
-    height: 44px;
-    padding: 0 26px;
-    font-size: 14px;
-    cursor: pointer;
+  .countdown span {
+    animation: count 900ms ease-out both;
+  }
+
+  @keyframes count {
+    0% {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    20% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    80% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0.2;
+    }
   }
 </style>

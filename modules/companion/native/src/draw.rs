@@ -6,7 +6,8 @@ use std::{collections::HashMap, sync::OnceLock};
 
 use serde::Deserialize;
 use tiny_skia::{
-    Color, FillRule, LineCap, Paint, Path, PathBuilder, Pixmap, Rect, Stroke, Transform,
+    Color, FillRule, LineCap, LineJoin, Paint, Path, PathBuilder, Pixmap, PixmapPaint, Rect,
+    Stroke, Transform,
 };
 
 use crate::progress::Species;
@@ -41,10 +42,34 @@ struct Look {
     striped: bool,
 }
 
+/// A shape of an outfit or of a hiding place.
+#[derive(Deserialize)]
+struct Part {
+    #[serde(default)]
+    layer: String,
+    d: String,
+    fill: Option<String>,
+    opacity: Option<f32>,
+    stroke: Option<String>,
+    width: Option<f32>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Peek {
+    tail: String,
+    tip: String,
+    fake_tail: String,
+    fake_tip: String,
+}
+
 #[derive(Deserialize)]
 struct Art {
     common: HashMap<String, String>,
     species: HashMap<String, Look>,
+    wear: HashMap<String, Vec<Part>>,
+    hiding: HashMap<String, Vec<Part>>,
+    peek: Peek,
 }
 
 fn art() -> Option<&'static Art> {
@@ -57,7 +82,6 @@ fn art() -> Option<&'static Art> {
 pub enum Mood {
     Idle,
     Happy,
-    Sniff,
     Walk,
 }
 
@@ -68,8 +92,7 @@ pub struct Pose {
     lean: f32,
     all_scale: (f32, f32),
     breath: (f32, f32),
-    head: (f32, f32),
-    head_lean: f32,
+    head_drop: f32,
     tail: f32,
     ear: f32,
     blink: f32,
@@ -107,8 +130,7 @@ pub fn pose(mood: Mood, seconds: f32) -> Pose {
         lean: 0.0,
         all_scale: (1.0, 1.0),
         breath: (1.0 + 0.015 * breath, 1.0 - 0.025 * breath),
-        head: (0.0, 2.5 * breath),
-        head_lean: 0.0,
+        head_drop: 2.5 * breath,
         tail: wag(seconds, 2.2),
         ear: flick(seconds, 5.4),
         blink: if (0.93..0.99).contains(&at) {
@@ -127,15 +149,6 @@ pub fn pose(mood: Mood, seconds: f32) -> Pose {
             pose.tail = wag(seconds, 0.34);
             pose.ear = flick(seconds, 1.2);
             pose.heart = (seconds % 1.4) / 1.4;
-        }
-        Mood::Sniff => {
-            let turn = (seconds * std::f32::consts::TAU).sin();
-            pose.head = (
-                2.0 * turn,
-                7.0 + 2.0 * (seconds * 2.0 * std::f32::consts::TAU).sin(),
-            );
-            pose.head_lean = 3.0 * turn - 1.5;
-            pose.tail = wag(seconds, 1.0);
         }
         Mood::Walk => {
             let step = swing(seconds, 0.5);
@@ -257,6 +270,7 @@ impl Brush<'_> {
             let stroke = Stroke {
                 width,
                 line_cap: LineCap::Round,
+                line_join: LineJoin::Round,
                 ..Stroke::default()
             };
             self.pixmap
@@ -266,6 +280,25 @@ impl Brush<'_> {
 
     fn spot(&mut self, center: (f32, f32), radius: (f32, f32), color: Color, at: Transform) {
         self.fill(oval(center.0, center.1, radius.0, radius.1), color, at);
+    }
+
+    fn part(&mut self, part: &Part, at: Transform) {
+        if let (Some(color), Some(stroke)) = (&part.stroke, part.width)
+            && part.fill.is_none()
+        {
+            self.line(&part.d, color, stroke, at);
+            return;
+        }
+        if let Some(color) = &part.fill {
+            self.fill(
+                parse_path(&part.d),
+                soft(color, part.opacity.unwrap_or(1.0)),
+                at,
+            );
+        }
+        if let (Some(color), Some(width)) = (&part.stroke, part.width) {
+            self.line(&part.d, color, width, at);
+        }
     }
 }
 
@@ -279,23 +312,22 @@ fn common<'a>(art: &'a Art, name: &str) -> &'a str {
     art.common.get(name).map_or("", String::as_str)
 }
 
+fn draw_wear(brush: &mut Brush, art: &Art, wear: Option<&str>, layer: &str, at: Transform) {
+    let Some(parts) = wear.and_then(|wear| art.wear.get(wear)) else {
+        return;
+    };
+    for part in parts.iter().filter(|part| part.layer == layer) {
+        brush.part(part, at);
+    }
+}
+
 fn draw_body(brush: &mut Brush, art: &Art, look: &Look, wear: Option<&str>, at: Transform) {
+    draw_wear(brush, art, wear, "back", at);
     brush.data(common(art, "body"), &look.main, at);
     brush.data(common(art, "bib"), &look.light, at);
     brush.data(common(art, "pawLeft"), &look.paw, at);
     brush.data(common(art, "pawRight"), &look.paw, at);
-    match wear {
-        Some("scarf") => {
-            brush.data(common(art, "scarf"), "#E5534B", at);
-            brush.data(common(art, "scarfKnot"), "#C93F38", at);
-        }
-        Some("bow") => {
-            brush.data(common(art, "bowLeft"), "#7C8CF8", at);
-            brush.data(common(art, "bowRight"), "#7C8CF8", at);
-            brush.spot((100.0, 134.0), (6.0, 6.0), hex("#5B6BE0"), at);
-        }
-        _ => {}
-    }
+    draw_wear(brush, art, wear, "neck", at);
 }
 
 fn draw_eyes(brush: &mut Brush, art: &Art, happy: bool, blink: f32, head: Transform) {
@@ -313,32 +345,6 @@ fn draw_eyes(brush: &mut Brush, art: &Art, happy: bool, blink: f32, head: Transf
     brush.spot((130.0, 85.0), (4.0, 4.0), hex("#FFFFFF"), eyes);
     brush.spot((71.0, 95.0), (2.0, 2.0), soft("#FFFFFF", 0.8), eyes);
     brush.spot((123.0, 95.0), (2.0, 2.0), soft("#FFFFFF", 0.8), eyes);
-}
-
-fn draw_head_wear(brush: &mut Brush, art: &Art, wear: Option<&str>, at: Transform) {
-    match wear {
-        Some("glasses") => {
-            for x in [74.0, 126.0] {
-                brush.spot((x, 90.0), (17.0, 17.0), soft("#FFFFFF", 0.12), at);
-                if let Some(ring) = oval(x, 90.0, 17.0, 17.0) {
-                    let stroke = Stroke {
-                        width: 4.0,
-                        ..Stroke::default()
-                    };
-                    brush
-                        .pixmap
-                        .stroke_path(&ring, &paint(hex("#1F2430")), &stroke, at, None);
-                }
-            }
-            brush.line(common(art, "glassesBridge"), "#1F2430", 4.0, at);
-        }
-        Some("crown") => {
-            brush.line(common(art, "crown"), "#D9A520", 3.0, at);
-            brush.data(common(art, "crown"), "#F5C542", at);
-            brush.spot((100.0, 30.0), (4.0, 4.0), hex("#E5534B"), at);
-        }
-        _ => {}
-    }
 }
 
 fn draw_head(brush: &mut Brush, art: &Art, look: &Look, pose: &Pose, happy: bool, at: Transform) {
@@ -402,11 +408,9 @@ pub fn render(
         .pre_scale(pose.breath.0, pose.breath.1)
         .pre_translate(-100.0, -186.0);
     draw_body(&mut brush, art, look, wear, body);
-    let head = all
-        .pre_translate(pose.head.0, pose.head.1)
-        .pre_concat(Transform::from_rotate_at(pose.head_lean, 100.0, 124.0));
+    let head = all.pre_translate(0.0, pose.head_drop);
     draw_head(&mut brush, art, look, &pose, mood == Mood::Happy, head);
-    draw_head_wear(&mut brush, art, wear, head);
+    draw_wear(&mut brush, art, wear, "head", head);
     if pose.heart >= 0.0 {
         let rise = 6.0 - 28.0 * pose.heart;
         let fade = if pose.heart < 0.3 {
@@ -423,12 +427,121 @@ pub fn render(
     Some(pixmap)
 }
 
+/// The room around a thing of hide and seek, in units of its drawing of 140 by 120: its tail, its
+/// shadow and its shaking go past the drawing.
+pub const THING_ROOM: f32 = 14.0;
+const THING_WIDTH: f32 = 140.0;
+const THING_HEIGHT: f32 = 120.0;
+
+/// What sticks out of a hiding place at the moment.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Sticking {
+    Tail,
+    Fake,
+}
+
+/// How a thing of hide and seek looks at a moment.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ThingLook<'a> {
+    pub art: &'a str,
+    pub sticking: Option<Sticking>,
+    /// A plant is narrow: what sticks out of it has to be closer.
+    pub sticking_shift: f32,
+    pub angle: f32,
+    pub opacity: f32,
+}
+
+/// The window of a thing that is this wide on the screen.
+#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+pub fn thing_window(width: i32) -> (i32, i32) {
+    let unit = width as f32 / THING_WIDTH;
+    (
+        (unit * (THING_WIDTH + 2.0 * THING_ROOM)).ceil() as i32,
+        (unit * (THING_HEIGHT + 2.0 * THING_ROOM)).ceil() as i32,
+    )
+}
+
+/// A thing of hide and seek in its window, of `width` pixels without the room around it.
+#[allow(clippy::cast_sign_loss)]
+pub fn render_thing(species: Species, thing: &ThingLook, width: i32) -> Option<Pixmap> {
+    let art = art()?;
+    let look = art.species.get(species.key())?;
+    let parts = art.hiding.get(thing.art)?;
+    let (window_width, window_height) = thing_window(width);
+    let mut pixmap = Pixmap::new(window_width as u32, window_height as u32)?;
+    let unit = width as f32 / THING_WIDTH;
+    let at = Transform::from_scale(unit, unit)
+        .pre_translate(THING_ROOM, THING_ROOM)
+        .pre_concat(Transform::from_rotate_at(thing.angle, 70.0, 116.0));
+    let mut brush = Brush {
+        pixmap: &mut pixmap,
+    };
+    brush.spot((70.0, 115.0), (56.0, 6.0), soft("#000000", 0.25), at);
+    let stuck = at.pre_translate(thing.sticking_shift, 0.0);
+    match thing.sticking {
+        Some(Sticking::Tail) => {
+            brush.data(&art.peek.tail, &look.main, stuck);
+            brush.data(&art.peek.tip, &look.tip_color, stuck);
+        }
+        Some(Sticking::Fake) => {
+            brush.data(&art.peek.fake_tail, &look.main, stuck);
+            brush.data(&art.peek.fake_tip, "#8A5A2B", stuck);
+        }
+        None => {}
+    }
+    for part in parts {
+        brush.part(part, at);
+    }
+    fade(&mut pixmap, thing.opacity);
+    Some(pixmap)
+}
+
+fn fade(pixmap: &mut Pixmap, opacity: f32) {
+    if opacity >= 1.0 {
+        return;
+    }
+    for byte in pixmap.data_mut() {
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        let faded = (f32::from(*byte) * opacity) as u8;
+        *byte = faded;
+    }
+}
+
+/// The mascot's own shape in cardboard: the shades of brown of a cut-out, standing still.
+fn cardboard(species: Species, size: u32) -> Option<Pixmap> {
+    let mut pixmap = render(species, Mood::Idle, None, 0.0, size)?;
+    for pixel in pixmap.data_mut().as_chunks_mut::<4>().0 {
+        let [red, green, blue, alpha] = *pixel;
+        let shade = 0.3 * f32::from(red) + 0.59 * f32::from(green) + 0.11 * f32::from(blue);
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        let tone = |amount: f32| (shade * amount).min(f32::from(alpha)) as u8;
+        *pixel = [tone(0.98), tone(0.76), tone(0.47), alpha];
+    }
+    Some(pixmap)
+}
+
+pub fn render_card(species: Species, size: u32) -> Option<Pixmap> {
+    cardboard(species, size)
+}
+
+/// A cut-out once knocked over, on its back: twice as wide and half as high again, with the place
+/// where its feet were in the middle of the bottom of its old height.
+pub fn render_fallen_card(species: Species, size: u32) -> Option<Pixmap> {
+    let card = cardboard(species, size)?;
+    let mut pixmap = Pixmap::new(size * 2, size + size / 2)?;
+    let half = size as f32 / 2.0;
+    let at = Transform::from_rotate_at(-84.0, size as f32, size as f32).pre_translate(half, 0.0);
+    pixmap.draw_pixmap(0, 0, card.as_ref(), &PixmapPaint::default(), at, None);
+    fade(&mut pixmap, 0.55);
+    Some(pixmap)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     const ALL: [Species; 4] = [Species::Fox, Species::Dog, Species::Cat, Species::Wolf];
-    const MOODS: [Mood; 4] = [Mood::Idle, Mood::Happy, Mood::Sniff, Mood::Walk];
+    const MOODS: [Mood; 3] = [Mood::Idle, Mood::Happy, Mood::Walk];
 
     fn alpha(pixmap: &Pixmap, x: u32, y: u32) -> u8 {
         pixmap
@@ -441,6 +554,20 @@ mod tests {
         let art = art().unwrap();
         for (name, data) in &art.common {
             assert!(parse_path(data).is_some(), "{name}");
+        }
+        for (name, parts) in art.wear.iter().chain(&art.hiding) {
+            for part in parts {
+                assert!(parse_path(&part.d).is_some(), "{name}: {}", part.d);
+                assert!(part.fill.is_some() || part.stroke.is_some(), "{name}");
+            }
+        }
+        for data in [
+            &art.peek.tail,
+            &art.peek.tip,
+            &art.peek.fake_tail,
+            &art.peek.fake_tip,
+        ] {
+            assert!(parse_path(data).is_some(), "{data}");
         }
         for (name, look) in &art.species {
             for data in [
@@ -498,10 +625,80 @@ mod tests {
 
     #[test]
     fn an_accessory_changes_the_drawing() {
+        let shop: serde_json::Value =
+            serde_json::from_str(include_str!("../../shop.json")).unwrap();
         let plain = render(Species::Fox, Mood::Idle, None, 0.0, 200).unwrap();
-        for wear in ["scarf", "glasses", "bow", "crown"] {
+        let items = shop["wear"].as_array().unwrap();
+        assert_eq!(items.len(), art().unwrap().wear.len());
+        for item in items {
+            let wear = item["id"].as_str().unwrap();
             let dressed = render(Species::Fox, Mood::Idle, Some(wear), 0.0, 200).unwrap();
             assert_ne!(plain.data(), dressed.data(), "{wear}");
+        }
+    }
+
+    #[test]
+    fn no_outfit_is_cut_by_the_window() {
+        for species in ALL {
+            for wear in art().unwrap().wear.keys() {
+                for mood in MOODS {
+                    let pixmap = render(species, mood, Some(wear), 0.3, 200).unwrap();
+                    for edge in 0..200 {
+                        assert_eq!(alpha(&pixmap, edge, 0), 0, "{wear} {species:?}: the top");
+                        assert_eq!(alpha(&pixmap, 0, edge), 0, "{wear} {species:?}: the left");
+                    }
+                }
+            }
+        }
+    }
+
+    fn thing(art: &'static str, sticking: Option<Sticking>) -> ThingLook<'static> {
+        ThingLook {
+            art,
+            sticking,
+            sticking_shift: 0.0,
+            angle: 0.0,
+            opacity: 1.0,
+        }
+    }
+
+    #[test]
+    fn every_thing_fits_its_window() {
+        let (width, height) = thing_window(140);
+        for art in ["box", "open", "plant", "basket", "cushion"] {
+            for sticking in [None, Some(Sticking::Tail), Some(Sticking::Fake)] {
+                let pixmap = render_thing(Species::Fox, &thing(art, sticking), 140).unwrap();
+                assert_eq!(
+                    (pixmap.width(), pixmap.height()),
+                    (width.cast_unsigned(), height.cast_unsigned())
+                );
+                for edge in 0..pixmap.height() {
+                    assert_eq!(alpha(&pixmap, pixmap.width() - 1, edge), 0, "{art}: right");
+                    assert_eq!(alpha(&pixmap, 0, edge), 0, "{art}: left");
+                }
+                assert!(pixmap.data().iter().any(|byte| *byte > 0), "{art}");
+            }
+        }
+    }
+
+    #[test]
+    fn a_tail_changes_a_thing_and_the_real_one_differs_from_the_fake() {
+        let plain = render_thing(Species::Fox, &thing("box", None), 140).unwrap();
+        let real = render_thing(Species::Fox, &thing("box", Some(Sticking::Tail)), 140).unwrap();
+        let fake = render_thing(Species::Fox, &thing("box", Some(Sticking::Fake)), 140).unwrap();
+        assert_ne!(plain.data(), real.data());
+        assert_ne!(real.data(), fake.data());
+    }
+
+    #[test]
+    fn a_cut_out_stays_valid_once_recoloured_and_fallen() {
+        let card = render_card(Species::Dog, 120).unwrap();
+        let fallen = render_fallen_card(Species::Dog, 120).unwrap();
+        for pixmap in [&card, &fallen] {
+            for pixel in pixmap.data().as_chunks::<4>().0 {
+                assert!(pixel[..3].iter().all(|channel| *channel <= pixel[3]));
+            }
+            assert!(pixmap.data().iter().any(|byte| *byte > 0));
         }
     }
 

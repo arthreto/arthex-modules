@@ -1,6 +1,8 @@
 import { moduleNative, toast } from '@arthex/sdk';
 import { t } from './i18n';
 import { ID } from './identity';
+import type art from './mascot-art.json';
+import shop from './shop.json';
 import { alreadyTried, normalized, type TriedWord } from './words';
 
 const native = moduleNative(ID);
@@ -8,9 +10,10 @@ const native = moduleNative(ID);
 export type Species = 'fox' | 'dog' | 'cat' | 'wolf';
 export type Mood = 'idle' | 'happy' | 'sleep' | 'sniff' | 'walk';
 export type Frequency = 'rare' | 'normal' | 'often';
-export type Item = 'scarf' | 'glasses' | 'bow' | 'crown';
+export type Item = keyof typeof art.wear;
 export type FlairState = 'off' | 'loading' | 'ready';
 export type GameId = 'catch' | 'memory' | 'pet' | 'flair';
+export type ShopGame = GameId | 'hide';
 export type View = 'home' | 'shop' | 'result' | GameId;
 
 export interface Mascot {
@@ -22,9 +25,10 @@ export interface Mascot {
   kibble: number;
   wear: Item | null;
   owned: Item[];
+  games: ShopGame[];
   onScreen: boolean;
   frequency: Frequency;
-  petsToday: number;
+  pets: number;
   petGoal: number;
 }
 
@@ -60,12 +64,6 @@ export interface Result {
 
 const NOTHING_GAINED: Gain = { xp: 0, kibble: 0, levelUp: false };
 
-/** Today in the user's time, as a number of days: the pets of the day start over at midnight. */
-const today = (): number => {
-  const now = new Date();
-  return Math.floor((now.getTime() - now.getTimezoneOffset() * 60_000) / 86_400_000);
-};
-
 const reducedMotion = (): boolean => document.documentElement.dataset.motion === 'reduced';
 
 /** What the page and the Home card share. It stays while the overlay closes, which rebuilds them. */
@@ -81,7 +79,7 @@ class Companion {
 
   private async ask(method: string, params: Record<string, unknown> = {}): Promise<Gain | null> {
     try {
-      const answer = await native.call<Answer>(method, { day: today(), ...params });
+      const answer = await native.call<Answer>(method, params);
       this.mascot = answer.view;
       return answer.gain;
     } catch {
@@ -104,11 +102,7 @@ class Companion {
     await this.ask('adopt', { species, name });
   }
 
-  tap(): void {
-    void this.ask('tap');
-  }
-
-  /** The last stroke of the day pays, and says so. */
+  /** The last stroke of a round pays, and says so. */
   async pet(): Promise<Gain | null> {
     return this.ask('pet');
   }
@@ -123,10 +117,23 @@ class Companion {
     this.view = 'result';
   }
 
+  /** A game that costs nothing is everybody's from the start. */
+  owns(game: ShopGame): boolean {
+    const price = shop.games.find((entry) => entry.id === game)?.price;
+    return price === 0 || (this.mascot?.games.includes(game) ?? false);
+  }
+
+  /** Flair needs its words first, and the switch of the room is what brings them. */
+  play(game: ShopGame): void {
+    if (game === 'hide') void this.hideAndSeek();
+    else if (game === 'flair' && this.flair?.state !== 'ready') this.view = 'home';
+    else this.view = game;
+  }
+
   /** The overlay goes away during the game, and comes back on its own at the end. */
-  async hideAndSeek(): Promise<void> {
+  private async hideAndSeek(): Promise<void> {
     try {
-      const answer = await native.callHidden<Answer>('hideAndSeek', { day: today() });
+      const answer = await native.callHidden<Answer>('hideAndSeek');
       this.mascot = answer.view;
     } catch {
       toast(t('failed'));
@@ -135,6 +142,10 @@ class Companion {
 
   async buy(item: Item): Promise<void> {
     await this.ask('buy', { item });
+  }
+
+  async buyGame(game: ShopGame): Promise<void> {
+    await this.ask('buyGame', { game });
   }
 
   async wear(item: Item | null): Promise<void> {
@@ -187,10 +198,7 @@ class Companion {
       return;
     }
     try {
-      const { guess, answer } = await native.call<{ guess: Guess; answer: Answer }>('flairGuess', {
-        word,
-        day: today(),
-      });
+      const { guess, answer } = await native.call<{ guess: Guess; answer: Answer }>('flairGuess', { word });
       this.mascot = answer.view;
       if (guess.result === 'unknown') {
         this.roundMessage = t('flair.unknown', { word });

@@ -16,25 +16,22 @@ use std::{
 
 use windows_sys::Win32::{
     Foundation::{HWND, LPARAM, LRESULT, POINT, RECT, SIZE, WPARAM},
-    Graphics::{
-        Dwm::{DWMWA_CLOAKED, DwmGetWindowAttribute},
-        Gdi::{
-            CreateFontW, DT_CENTER, DT_END_ELLIPSIS, DT_NOPREFIX, DT_SINGLELINE, DT_VCENTER,
-            DeleteObject, DrawTextW, FW_MEDIUM, FW_SEMIBOLD, GetMonitorInfoW,
-            GetTextExtentPoint32W, HFONT, MONITOR_DEFAULTTONEAREST, MONITORINFO, MonitorFromPoint,
-            MonitorFromWindow, SelectObject, SetBkMode, SetTextColor, TRANSPARENT,
-        },
+    Graphics::Gdi::{
+        CreateFontW, DT_CENTER, DT_END_ELLIPSIS, DT_NOPREFIX, DT_SINGLELINE, DT_VCENTER,
+        DeleteObject, DrawTextW, FW_MEDIUM, FW_SEMIBOLD, GetMonitorInfoW, GetTextExtentPoint32W,
+        HFONT, MONITOR_DEFAULTTONEAREST, MONITORINFO, MonitorFromPoint, MonitorFromWindow,
+        SelectObject, SetBkMode, SetTextColor, TRANSPARENT,
     },
     UI::{
         HiDpi::{DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2, SetThreadDpiAwarenessContext},
         Shell::{QUNS_ACCEPTS_NOTIFICATIONS, SHQueryUserNotificationState},
         WindowsAndMessaging::{
-            DefWindowProcW, DestroyWindow, DispatchMessageW, EnumWindows, GWL_EXSTYLE,
-            GetClassNameW, GetCursorPos, GetForegroundWindow, GetMessageW, GetWindowLongW,
-            GetWindowRect, HCURSOR, IDC_HAND, IsIconic, IsWindowVisible, KillTimer, LoadCursorW,
-            MSG, PostMessageW, RegisterClassW, SW_HIDE, SW_SHOWNOACTIVATE, SetCursor, SetTimer,
-            ShowWindow, WM_APP, WM_LBUTTONUP, WM_POWERBROADCAST, WM_SETCURSOR, WM_TIMER, WNDCLASSW,
-            WS_EX_TOOLWINDOW,
+            DefWindowProcW, DestroyWindow, DispatchMessageW, GetClassNameW, GetCursorPos,
+            GetForegroundWindow, GetMessageW, GetWindowRect, HCURSOR, HWND_TOPMOST, IDC_ARROW,
+            IDC_HAND, KillTimer, LoadCursorW, MSG, PostMessageW, RegisterClassW, SW_HIDE,
+            SW_SHOWNOACTIVATE, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SetCursor, SetTimer,
+            SetWindowPos, ShowWindow, WM_APP, WM_LBUTTONUP, WM_POWERBROADCAST, WM_SETCURSOR,
+            WM_TIMER, WNDCLASSW,
         },
     },
 };
@@ -42,9 +39,15 @@ use windows_sys::Win32::{
 use super::{
     Shared,
     canvas::{Canvas, create_window, main_screen_scale, module, scaled, wide},
-    draw::{Mood, render, window_size},
-    places::{Area, Hiding, Walk, clock, hiding_place, wait_before_visit, walk_in, walk_out},
-    progress::Progress,
+    draw::{
+        Mood, Sticking, THING_ROOM, ThingLook, render, render_card, render_fallen_card,
+        render_thing, window_size,
+    },
+    places::{
+        Area, Kind, Spot, Walk, clock, lay_out, shaking, tail_shows, wait_before_visit, walk_in,
+        walk_out,
+    },
+    progress::{Game, Progress, Species},
 };
 
 const WAKE: u32 = WM_APP + 1;
@@ -54,11 +57,20 @@ const FRAME_TIMER: usize = 2;
 const FRAME_MILLISECONDS: u32 = 40;
 const TRY_AGAIN_MILLISECONDS: u32 = 300_000;
 const VISIT_SIZE: f32 = 150.0;
-const HIDING_SIZE: f32 = 110.0;
 const WALK_SPEED: f32 = 90.0;
 const STAY_SECONDS: f32 = 25.0;
 const HAPPY_SECONDS: f32 = 1.2;
 const HIDE_SECONDS: u32 = 60;
+const HIDE_TRIES: u32 = 4;
+/// How long the mascot stays out at the end of the game, before Arthex comes back on its own.
+const ENDING_SECONDS: f32 = 2.0;
+/// Where nothing is put, as the counter is there.
+const HIDE_TOP_ROOM: f32 = 84.0;
+const OPENED_OPACITY: f32 = 0.35;
+/// Its drawing of 140 units wide, as `places` knows the width of a thing.
+const THING_UNITS: f32 = 140.0;
+/// What sticks out of a narrow pot has to be closer to it.
+const PLANT_SHIFT: f32 = -22.0;
 /// Its feet are above the bottom of its window: this puts them on the taskbar.
 const FEET_ROOM: f32 = 20.0;
 /// Asking Windows if the moment is good costs more than a frame.
@@ -84,7 +96,7 @@ const ACCENT: [u8; 3] = [255, 194, 76];
 const TEXT: u32 = 0x00F6_F4F3;
 const ON_ACCENT: u32 = 0x002C_2005;
 const COUNTER: u32 = 0x0074_BAFD;
-const FOUND: u32 = 0x00B7_E76E;
+const MUTED: u32 = 0x00D4_CDC9;
 const XP: u32 = 0x00FF_C24C;
 const CLOSE_LINE: [u8; 3] = [194, 185, 180];
 
@@ -215,37 +227,6 @@ fn someone_is_busy() -> bool {
             && rect.right >= screen.right
             && rect.bottom >= screen.bottom
     }
-}
-
-unsafe extern "system" fn add_window(window: HWND, list: LPARAM) -> i32 {
-    // SAFETY: `list` is the vector `open_windows` passes, which outlives `EnumWindows`.
-    let list = unsafe { &mut *(list as *mut Vec<Area>) };
-    let mut cloaked = 0_u32;
-    // SAFETY: only reads about a window, which may be gone: the calls then fail harmlessly.
-    unsafe {
-        DwmGetWindowAttribute(
-            window,
-            DWMWA_CLOAKED.cast_unsigned(),
-            (&raw mut cloaked).cast(),
-            4,
-        );
-        let tool = GetWindowLongW(window, GWL_EXSTYLE).cast_unsigned() & WS_EX_TOOLWINDOW != 0;
-        if IsWindowVisible(window) != 0 && IsIconic(window) == 0 && cloaked == 0 && !tool {
-            let mut rect = std::mem::zeroed();
-            if GetWindowRect(window, &raw mut rect) != 0 {
-                list.push(area_of(rect));
-            }
-        }
-    }
-    1
-}
-
-/// The open windows of the desktop, from the front to the back.
-fn open_windows() -> Vec<Area> {
-    let mut list: Vec<Area> = Vec::new();
-    // SAFETY: the callback only runs during this call, while `list` lives.
-    unsafe { EnumWindows(Some(add_window), (&raw mut list) as LPARAM) };
-    list
 }
 
 fn font(size: f32, weight: u32, scale: f32) -> HFONT {
@@ -429,10 +410,6 @@ impl Texts {
         if self.french { "Jouer" } else { "Play" }
     }
 
-    const fn resume(self) -> &'static str {
-        if self.french { "Continuer" } else { "Continue" }
-    }
-
     fn find(self, name: &str) -> String {
         if self.french {
             format!("Trouve {name}")
@@ -441,11 +418,24 @@ impl Texts {
         }
     }
 
-    fn found_in(self, seconds: u32) -> String {
+    fn tries(self, count: u32) -> String {
+        match (self.french, count) {
+            (true, 0 | 1) => format!("{count} essai"),
+            (true, _) => format!("{count} essais"),
+            (false, 1) => "1 try".to_string(),
+            (false, _) => format!("{count} tries"),
+        }
+    }
+
+    const fn missed(self) -> &'static str {
+        if self.french { "Raté" } else { "Missed" }
+    }
+
+    fn kibble(self, count: u32) -> String {
         if self.french {
-            format!("Trouvé en {seconds} s")
+            format!("+{count} croquettes")
         } else {
-            format!("Found in {seconds} s")
+            format!("+{count} kibble")
         }
     }
 }
@@ -531,46 +521,60 @@ fn bubble(texts: Texts, scale: f32) -> Option<Panel> {
     panel
 }
 
-fn counter_panel(find: &str, time: &str, scale: f32) -> Option<Panel> {
+/// A line of coloured texts, with a close button at the end if it asks for one.
+fn text_panel(texts: &[(&str, u32)], with_close: bool, scale: f32) -> Option<Panel> {
     let bold = font(COUNTER_SIZE, FW_SEMIBOLD, scale);
     let padding = scaled(PANEL_PADDING, scale);
     let gap = scaled(12.0, scale);
-    let find_width = text_width(bold, find);
-    let time_width = text_width(bold, time);
-    let width = padding * 2 + find_width + gap + time_width;
+    let widths: Vec<i32> = texts
+        .iter()
+        .map(|(text, _)| text_width(bold, text))
+        .collect();
+    let line = widths.iter().sum::<i32>() + gap * (i32::try_from(texts.len()).unwrap_or(1) - 1);
+    let close_width = if with_close {
+        scaled(CLOSE_WIDTH, scale)
+    } else {
+        0
+    };
+    let width = padding
+        + line
+        + if with_close {
+            gap / 2 + close_width
+        } else {
+            padding
+        };
     let panel = panel_base(width, scale).map(|mut canvas| {
         let height = canvas.height;
-        write(
-            &canvas,
-            bold,
-            TEXT,
-            find,
-            RECT {
-                left: padding,
-                top: 0,
-                right: padding + find_width,
-                bottom: height,
-            },
-            0,
-        );
-        write(
-            &canvas,
-            bold,
-            COUNTER,
-            time,
-            RECT {
-                left: padding + find_width + gap,
-                top: 0,
-                right: width,
-                bottom: height,
-            },
-            0,
-        );
+        let mut left = padding;
+        for ((text, color), text_width) in texts.iter().zip(&widths) {
+            write(
+                &canvas,
+                bold,
+                *color,
+                text,
+                RECT {
+                    left,
+                    top: 0,
+                    right: left + text_width,
+                    bottom: height,
+                },
+                0,
+            );
+            left += text_width + gap;
+        }
+        let close = width - close_width;
+        if with_close {
+            draw_close(
+                &mut canvas,
+                ((close + close_width / 2) as f32, height as f32 / 2.0),
+                CLOSE_ICON * scale,
+            );
+        }
         finish_panel(&mut canvas, scale);
         Panel {
             canvas,
             button: (0, 0),
-            close: width,
+            close,
         }
     });
     // SAFETY: created above, and no longer selected in any context.
@@ -578,139 +582,43 @@ fn counter_panel(find: &str, time: &str, scale: f32) -> Option<Panel> {
     panel
 }
 
-fn found_panel(found: &str, gain: &str, resume: &str, scale: f32) -> Option<Panel> {
-    let bold = font(COUNTER_SIZE, FW_SEMIBOLD, scale);
-    let button_font = font(13.0, FW_MEDIUM, scale);
-    let padding = scaled(PANEL_PADDING, scale);
-    let gap = scaled(12.0, scale);
-    let found_width = text_width(bold, found);
-    let gain_width = text_width(bold, gain);
-    let button_width = text_width(button_font, resume) + 2 * scaled(BUTTON_PADDING, scale);
-    let width = padding * 2 + found_width + gap + gain_width + gap + button_width;
-    let panel = panel_base(width, scale).map(|mut canvas| {
-        let height = canvas.height;
-        let gain_left = padding + found_width + gap;
-        let button_left = gain_left + gain_width + gap;
-        let button_right = button_left + button_width;
-        let button_top = (height - scaled(BUTTON_HEIGHT, scale)) / 2;
-        fill_rounded(
-            &mut canvas,
-            (
-                button_left as f32,
-                button_top as f32,
-                button_right as f32,
-                (button_top + scaled(BUTTON_HEIGHT, scale)) as f32,
-            ),
-            BUTTON_RADIUS * scale,
-            ACCENT,
-        );
-        write(
-            &canvas,
-            bold,
-            FOUND,
-            found,
-            RECT {
-                left: padding,
-                top: 0,
-                right: gain_left,
-                bottom: height,
-            },
-            0,
-        );
-        write(
-            &canvas,
-            bold,
-            XP,
-            gain,
-            RECT {
-                left: gain_left,
-                top: 0,
-                right: button_left,
-                bottom: height,
-            },
-            0,
-        );
-        write(
-            &canvas,
-            button_font,
-            ON_ACCENT,
-            resume,
-            RECT {
-                left: button_left,
-                top: 0,
-                right: button_right,
-                bottom: height,
-            },
-            DT_CENTER,
-        );
-        finish_panel(&mut canvas, scale);
-        Panel {
-            canvas,
-            button: (button_left, button_right),
-            close: width,
-        }
-    });
-    // SAFETY: created above, and no longer selected in any context.
-    unsafe {
-        DeleteObject(bold);
-        DeleteObject(button_font);
+/// A drawing as a bitmap for a window.
+fn canvas_of(pixmap: &tiny_skia::Pixmap) -> Option<Canvas> {
+    let mut canvas = Canvas::new(
+        i32::try_from(pixmap.width()).ok()?,
+        i32::try_from(pixmap.height()).ok()?,
+    )?;
+    for (to, from) in canvas
+        .pixels_mut()
+        .as_chunks_mut::<4>()
+        .0
+        .iter_mut()
+        .zip(pixmap.data().as_chunks::<4>().0)
+    {
+        // A Windows bitmap holds blue, green, red and alpha, both premultiplied.
+        *to = [from[2], from[1], from[0], from[3]];
     }
-    panel
+    Some(canvas)
 }
 
-/// The drawn mascot, as the bitmap of its window, cut to what shows of it.
-fn present_mascot(
-    window: HWND,
-    look: &Look,
-    mood: Mood,
-    seconds: f32,
-    x: i32,
-    y: i32,
-    cut: Option<Hiding>,
-) {
-    let size = look.size;
-    let Some(pixmap) = render(
+/// The drawn mascot, as the bitmap of its window.
+fn present_mascot(window: HWND, look: &Look, mood: Mood, seconds: f32, x: i32, y: i32) {
+    let pixmap = render(
         look.species,
         mood,
         look.wear.as_deref(),
         seconds,
-        size.cast_unsigned(),
-    ) else {
-        return;
-    };
-    let (shown, skipped) = match cut {
-        Some(place) if place.hidden_on_left => (place.shown, size - place.shown),
-        Some(place) => (place.shown, 0),
-        None => (size, 0),
-    };
-    let Some(mut canvas) = Canvas::new(shown, size) else {
-        return;
-    };
-    let row = usize::try_from(size).unwrap_or(0) * 4;
-    let copied = usize::try_from(shown).unwrap_or(0) * 4;
-    let skip = usize::try_from(skipped).unwrap_or(0) * 4;
-    let pixels = canvas.pixels_mut();
-    for (target, source) in pixels
-        .chunks_exact_mut(copied)
-        .zip(pixmap.data().chunks_exact(row))
-    {
-        for (to, from) in target
-            .as_chunks_mut::<4>()
-            .0
-            .iter_mut()
-            .zip(source[skip..skip + copied].as_chunks::<4>().0)
-        {
-            // A Windows bitmap holds blue, green, red and alpha, both premultiplied.
-            *to = [from[2], from[1], from[0], from[3]];
-        }
+        look.size.cast_unsigned(),
+    );
+    if let Some(canvas) = pixmap.as_ref().and_then(canvas_of) {
+        canvas.present(window, x, y);
     }
-    canvas.present(window, x, y);
 }
 
 /// What the mascot looks like at the moment.
 #[derive(Clone)]
 struct Look {
-    species: super::progress::Species,
+    species: Species,
     wear: Option<String>,
     name: String,
     size: i32,
@@ -741,13 +649,127 @@ struct Visit {
     panel: Option<Panel>,
 }
 
+/// A thing on the screen, in its own window: only what shakes or changes is ever drawn again.
+struct Thing {
+    window: HWND,
+    spot: Spot,
+    drawn: Option<(i32, Option<Sticking>, bool, bool)>,
+}
+
+impl Thing {
+    fn sticking(&self, seconds: f32, reduced: bool) -> Option<Sticking> {
+        let tail = self.spot.tail.filter(|_| !self.spot.opened)?;
+        (reduced || tail_shows(tail, seconds)).then_some(if tail.fake {
+            Sticking::Fake
+        } else {
+            Sticking::Tail
+        })
+    }
+
+    fn present(&mut self, species: Species, seconds: f32, reduced: bool, out: bool) {
+        if self.spot.kind == Kind::Card {
+            self.present_card(species);
+            return;
+        }
+        let sticking = if out {
+            None
+        } else {
+            self.sticking(seconds, reduced)
+        };
+        let shake = self
+            .spot
+            .shake
+            .filter(|_| !reduced && !out && !self.spot.opened);
+        let angle = shake.map_or(0.0, |shake| shaking(shake, seconds));
+        #[allow(clippy::cast_possible_truncation)]
+        let state = ((angle * 10.0) as i32, sticking, self.spot.opened, out);
+        if self.drawn == Some(state) {
+            return;
+        }
+        self.drawn = Some(state);
+        let art = match self.spot.kind {
+            Kind::Box if self.spot.opened || out => "open",
+            Kind::Box => "box",
+            Kind::Plant => "plant",
+            Kind::Basket => "basket",
+            Kind::Cushion | Kind::Card => "cushion",
+        };
+        let look = ThingLook {
+            art,
+            sticking,
+            sticking_shift: if self.spot.kind == Kind::Plant {
+                PLANT_SHIFT
+            } else {
+                0.0
+            },
+            angle,
+            opacity: if self.spot.opened {
+                OPENED_OPACITY
+            } else {
+                1.0
+            },
+        };
+        let room = scaled_room(self.spot.width);
+        if let Some(canvas) = render_thing(species, &look, self.spot.width)
+            .as_ref()
+            .and_then(canvas_of)
+        {
+            canvas.present(self.window, self.spot.x - room, self.spot.y - room);
+        }
+    }
+
+    /// Standing, or knocked over on its back once clicked.
+    fn present_card(&mut self, species: Species) {
+        let state = (0, None, self.spot.opened, false);
+        if self.drawn == Some(state) {
+            return;
+        }
+        self.drawn = Some(state);
+        let size = self.spot.width.cast_unsigned();
+        let (pixmap, x) = if self.spot.opened {
+            (
+                render_fallen_card(species, size),
+                self.spot.x - self.spot.width / 2,
+            )
+        } else {
+            (render_card(species, size), self.spot.x)
+        };
+        if let Some(canvas) = pixmap.as_ref().and_then(canvas_of) {
+            canvas.present(self.window, x, self.spot.y);
+        }
+    }
+}
+
+#[allow(clippy::cast_possible_truncation)]
+fn scaled_room(width: i32) -> i32 {
+    (width as f32 / THING_UNITS * THING_ROOM).round() as i32
+}
+
+struct Ending {
+    found: bool,
+    started: Instant,
+    x: i32,
+    y: i32,
+}
+
 struct Hunt {
     look: Look,
-    place: Hiding,
+    things: Vec<Thing>,
+    work: Area,
     started: Instant,
     shown_seconds: Option<u32>,
-    found_after: Option<u32>,
+    tries: u32,
+    ending: Option<Ending>,
     panel: Option<Panel>,
+}
+
+impl Drop for Hunt {
+    fn drop(&mut self) {
+        for thing in &self.things {
+            // SAFETY: our own window, used by nothing else once its game is over.
+            unsafe { DestroyWindow(thing.window) };
+        }
+    }
 }
 
 struct Screen {
@@ -758,7 +780,9 @@ struct Screen {
     waiter: HWND,
     mascot: HWND,
     panel: HWND,
+    class: Vec<u16>,
     hand: HCURSOR,
+    arrow: HCURSOR,
     scale: f32,
     visit: Option<Visit>,
     hunt: Option<Hunt>,
@@ -932,15 +956,7 @@ impl Screen {
             }
         };
         let frame_seconds = if reduced { 0.0 } else { seconds };
-        present_mascot(
-            self.mascot,
-            &visit.look,
-            mood,
-            frame_seconds,
-            x,
-            visit.y,
-            None,
-        );
+        present_mascot(self.mascot, &visit.look, mood, frame_seconds, x, visit.y);
         if let Some(x) = arrived {
             visit.started = Instant::now();
             visit.step = Step::Staying {
@@ -970,29 +986,49 @@ impl Screen {
         if self.visit.is_some() {
             self.end_visit();
         }
-        let size = window_size(scaled(HIDING_SIZE, self.scale));
+        let size = window_size(scaled(VISIT_SIZE, self.scale));
         let Some(look) = look_of(&self.shared.progress(), size) else {
             self.shared.screen.found(false);
             return;
         };
-        let place = hiding_place(&open_windows(), work_area(), size, seed());
+        let work = work_area();
+        let top = scaled(HIDE_TOP_ROOM, self.scale);
+        let things: Vec<Thing> = lay_out(work, self.scale, top, seed())
+            .into_iter()
+            .map(|spot| Thing {
+                window: create_window(self.class.as_ptr()),
+                spot,
+                drawn: None,
+            })
+            .collect();
+        let complete = things.iter().all(|thing| !thing.window.is_null());
         self.hunt = Some(Hunt {
             look,
-            place,
+            things,
+            work,
             started: Instant::now(),
             shown_seconds: None,
-            found_after: None,
+            tries: HIDE_TRIES,
+            ending: None,
             panel: None,
         });
-        // SAFETY: shows our own window without taking the focus.
-        unsafe { ShowWindow(self.mascot, SW_SHOWNOACTIVATE) };
+        if !complete {
+            self.end_hunt(false);
+            return;
+        }
+        self.frame();
+        if let Some(hunt) = &self.hunt {
+            for thing in &hunt.things {
+                // SAFETY: shows our own window without taking the focus.
+                unsafe { ShowWindow(thing.window, SW_SHOWNOACTIVATE) };
+            }
+        }
         self.frames(true);
         // With no frames to draw, the counter still has to move and the time to run out.
         if self.reduced_motion() {
             // SAFETY: only starts our own timer.
             unsafe { SetTimer(self.waiter, FRAME_TIMER, 1000, None) };
         }
-        self.frame();
     }
 
     fn end_hunt(&mut self, found: bool) {
@@ -1003,7 +1039,7 @@ impl Screen {
         self.plan(None);
     }
 
-    fn place_panel(&self, panel: &Panel) {
+    fn place_counter(&self, panel: &Panel) {
         let work = work_area();
         panel.canvas.present(
             self.panel,
@@ -1014,58 +1050,173 @@ impl Screen {
         unsafe { ShowWindow(self.panel, SW_SHOWNOACTIVATE) };
     }
 
+    fn show_counter(&mut self, seconds_left: u32) {
+        let (scale, texts) = (self.scale, self.texts);
+        let Some(hunt) = &self.hunt else {
+            return;
+        };
+        let panel = text_panel(
+            &[
+                (&texts.find(&hunt.look.name), TEXT),
+                (&clock(seconds_left), COUNTER),
+                (&texts.tries(hunt.tries), MUTED),
+            ],
+            true,
+            scale,
+        );
+        if let Some(panel) = panel {
+            self.place_counter(&panel);
+            if let Some(hunt) = &mut self.hunt {
+                hunt.panel = Some(panel);
+            }
+        }
+    }
+
+    /// The mascot comes out of its hiding place, says how it went and leaves on its own.
+    fn finish_hunt(&mut self, found: bool) {
+        let (scale, texts) = (self.scale, self.texts);
+        let Some(hunt) = &mut self.hunt else {
+            return;
+        };
+        let Some(spot) = hunt
+            .things
+            .iter()
+            .find(|thing| thing.spot.hides)
+            .map(|thing| thing.spot)
+        else {
+            return;
+        };
+        let size = hunt.look.size;
+        let x = (spot.x + spot.width / 2 - size / 2).clamp(hunt.work.left, hunt.work.right - size);
+        let y = (spot.y + spot.height() - size + scaled(FEET_ROOM, scale)).max(hunt.work.top);
+        hunt.ending = Some(Ending {
+            found,
+            started: Instant::now(),
+            x,
+            y,
+        });
+        let (xp, kibble) = Game::HideAndSeek.reward();
+        let panel = if found {
+            text_panel(
+                &[(&format!("+{xp} XP"), XP), (&texts.kibble(kibble), COUNTER)],
+                false,
+                scale,
+            )
+        } else {
+            text_panel(&[(texts.missed(), TEXT)], false, scale)
+        };
+        if let Some(panel) = panel {
+            let left = (x + size / 2 - panel.canvas.width / 2)
+                .clamp(hunt.work.left, hunt.work.right - panel.canvas.width);
+            let top = (y + scaled(12.0, scale) - panel.canvas.height).max(hunt.work.top);
+            panel.canvas.present(self.panel, left, top);
+            hunt.panel = Some(panel);
+        }
+        self.hunt_frame();
+        // SAFETY: our own windows, in front of the things that were opened after them.
+        unsafe {
+            ShowWindow(self.mascot, SW_SHOWNOACTIVATE);
+            SetWindowPos(
+                self.mascot,
+                HWND_TOPMOST,
+                0,
+                0,
+                0,
+                0,
+                SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE,
+            );
+            SetWindowPos(
+                self.panel,
+                HWND_TOPMOST,
+                0,
+                0,
+                0,
+                0,
+                SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE,
+            );
+        }
+    }
+
     fn hunt_frame(&mut self) {
         let reduced = self.reduced_motion();
-        let scale = self.scale;
-        let texts = self.texts;
         let Some(hunt) = &mut self.hunt else {
             return;
         };
         let seconds = hunt.started.elapsed().as_secs_f32();
-        let frame_seconds = if reduced { 0.0 } else { seconds };
-        let mood = if hunt.found_after.is_some() {
-            Mood::Happy
-        } else {
-            Mood::Sniff
-        };
-        let cut = hunt.found_after.is_none().then_some(hunt.place);
-        // Once found, it comes out of its hiding place, in its full size.
-        let x = if hunt.found_after.is_some() && hunt.place.hidden_on_left {
-            hunt.place.x
-        } else if hunt.found_after.is_some() {
-            hunt.place.x + hunt.place.shown - hunt.look.size
-        } else {
-            hunt.place.x
-        };
-        present_mascot(
-            self.mascot,
-            &hunt.look,
-            mood,
-            frame_seconds,
-            x,
-            hunt.place.y,
-            cut,
-        );
-        if hunt.found_after.is_some() {
+        let species = hunt.look.species;
+        let ending = hunt.ending.is_some();
+        for thing in &mut hunt.things {
+            thing.present(species, seconds, reduced, ending && thing.spot.hides);
+        }
+        if let Some(ending) = &hunt.ending {
+            let frame_seconds = if reduced { 0.0 } else { seconds };
+            let mood = if ending.found {
+                Mood::Happy
+            } else {
+                Mood::Idle
+            };
+            present_mascot(
+                self.mascot,
+                &hunt.look,
+                mood,
+                frame_seconds,
+                ending.x,
+                ending.y,
+            );
+            if ending.started.elapsed().as_secs_f32() >= ENDING_SECONDS {
+                let found = ending.found;
+                self.end_hunt(found);
+            }
             return;
         }
         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
         let whole = seconds as u32;
         if whole >= HIDE_SECONDS {
-            self.end_hunt(false);
+            self.finish_hunt(false);
+        } else if hunt.shown_seconds != Some(whole) {
+            hunt.shown_seconds = Some(whole);
+            self.show_counter(HIDE_SECONDS - whole);
+        }
+    }
+
+    fn click_thing(&mut self, window: HWND) {
+        let Some(hunt) = &mut self.hunt else {
+            return;
+        };
+        if hunt.ending.is_some() {
             return;
         }
-        if hunt.shown_seconds != Some(whole) {
-            hunt.shown_seconds = Some(whole);
-            hunt.panel = counter_panel(&texts.find(&hunt.look.name), &clock(whole), scale);
-            let panel = hunt.panel.take();
-            if let Some(panel) = panel {
-                self.place_panel(&panel);
-                if let Some(hunt) = &mut self.hunt {
-                    hunt.panel = Some(panel);
-                }
-            }
+        let Some(thing) = hunt.things.iter_mut().find(|thing| thing.window == window) else {
+            return;
+        };
+        if thing.spot.opened {
+            return;
         }
+        if thing.spot.hides {
+            self.finish_hunt(true);
+            return;
+        }
+        thing.spot.opened = true;
+        hunt.tries -= 1;
+        let tries = hunt.tries;
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        let left = HIDE_SECONDS.saturating_sub(hunt.started.elapsed().as_secs_f32() as u32);
+        self.hunt_frame();
+        if tries == 0 {
+            self.finish_hunt(false);
+        } else {
+            self.show_counter(left);
+        }
+    }
+
+    fn thing_cursor(&self, window: HWND) -> Option<HCURSOR> {
+        let hunt = self.hunt.as_ref()?;
+        let thing = hunt.things.iter().find(|thing| thing.window == window)?;
+        Some(if thing.spot.opened || hunt.ending.is_some() {
+            self.arrow
+        } else {
+            self.hand
+        })
     }
 
     fn frame(&mut self) {
@@ -1077,45 +1228,20 @@ impl Screen {
     }
 
     fn click_mascot(&mut self) {
-        let (scale, texts) = (self.scale, self.texts);
-        if let Some(hunt) = &mut self.hunt {
-            if hunt.found_after.is_some() {
-                return;
-            }
-            #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-            let seconds = hunt.started.elapsed().as_secs_f32() as u32;
-            hunt.found_after = Some(seconds);
-            hunt.panel = found_panel(&texts.found_in(seconds), "+30 XP", texts.resume(), scale);
-            let panel = hunt.panel.take();
-            if let Some(panel) = panel {
-                self.place_panel(&panel);
-                if let Some(hunt) = &mut self.hunt {
-                    hunt.panel = Some(panel);
-                }
-            }
-            return;
-        }
-        if let Some(visit) = &mut self.visit {
-            if !matches!(visit.step, Step::Staying { .. }) {
-                return;
-            }
+        if let Some(visit) = &mut self.visit
+            && matches!(visit.step, Step::Staying { .. })
+        {
             visit.happy_until = visit.started.elapsed().as_secs_f32() + HAPPY_SECONDS;
-            let mut progress = self.shared.progress();
-            progress.tap();
-            // Only a convenience: at worst, one click is forgotten at the next start.
-            let _ = progress.save(&self.shared.folder);
         }
     }
 
     fn click_panel(&mut self, x: i32) {
-        if self.hunt.as_ref().is_some_and(|hunt| {
-            hunt.found_after.is_some()
-                && hunt
-                    .panel
-                    .as_ref()
-                    .is_some_and(|panel| (panel.button.0..panel.button.1).contains(&x))
-        }) {
-            self.end_hunt(true);
+        if let Some(hunt) = &self.hunt {
+            let closes =
+                hunt.ending.is_none() && hunt.panel.as_ref().is_some_and(|panel| x >= panel.close);
+            if closes {
+                self.end_hunt(false);
+            }
             return;
         }
         let Some(panel) = self.visit.as_ref().and_then(|visit| visit.panel.as_ref()) else {
@@ -1190,11 +1316,20 @@ unsafe extern "system" fn window_procedure(
                 screen.click_panel(low_word(lparam));
                 Some(0)
             }
+            WM_LBUTTONUP => {
+                screen.click_thing(window);
+                Some(0)
+            }
             WM_SETCURSOR if window == screen.mascot || window == screen.panel => {
                 // SAFETY: a system cursor, which lives as long as the program.
                 unsafe { SetCursor(screen.hand) };
                 Some(1)
             }
+            WM_SETCURSOR => screen.thing_cursor(window).map(|cursor| {
+                // SAFETY: a system cursor, which lives as long as the program.
+                unsafe { SetCursor(cursor) };
+                1
+            }),
             _ => None,
         };
         SCREEN.set(Some(screen));
@@ -1238,8 +1373,11 @@ fn listen(shared: &Arc<Shared>) -> Option<()> {
         waiter,
         mascot,
         panel,
-        // SAFETY: a system cursor, shared and never destroyed.
+        class,
+        // SAFETY: system cursors, shared and never destroyed.
         hand: unsafe { LoadCursorW(ptr::null_mut(), IDC_HAND) },
+        // SAFETY: as above.
+        arrow: unsafe { LoadCursorW(ptr::null_mut(), IDC_ARROW) },
         scale: main_screen_scale(),
         visit: None,
         hunt: None,

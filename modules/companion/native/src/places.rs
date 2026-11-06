@@ -19,83 +19,202 @@ impl Area {
     }
 }
 
-/// A hiding place: where the mascot's window goes, and which part of it stays hidden, from the
-/// left or from the right, as if something covered it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Hiding {
+pub enum Kind {
+    Box,
+    Plant,
+    Basket,
+    Cushion,
+    Card,
+}
+
+/// What sticks out of a hiding place, now and then.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Tail {
+    pub fake: bool,
+    pub offset: f32,
+}
+
+/// The shaking of a hiding place: how often, and from when.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Shake {
+    pub period: f32,
+    pub delay: f32,
+}
+
+/// A thing on the screen in the game of hide and seek.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Spot {
+    pub kind: Kind,
     pub x: i32,
     pub y: i32,
-    pub shown: i32,
-    pub hidden_on_left: bool,
+    pub width: i32,
+    pub hides: bool,
+    pub tail: Option<Tail>,
+    pub shake: Option<Shake>,
+    pub opened: bool,
 }
 
-/// Small windows make poor hiding places, and most are not what they seem.
-const SMALLEST_WINDOW: i32 = 200;
-
-/// As much of the mascot as can be seen once hidden, out of its size.
-const fn shown_part(size: i32) -> i32 {
-    size * 7 / 10
-}
-
-fn at_window_sides(window: Area, work: Area, size: i32, height_at: u64) -> Vec<Hiding> {
-    let shown = shown_part(size);
-    if window.width() < SMALLEST_WINDOW || window.height() < SMALLEST_WINDOW {
-        return Vec::new();
+impl Spot {
+    /// Its height without the room around its drawing, of 140 by 120 but for a cut-out.
+    pub const fn height(&self) -> i32 {
+        match self.kind {
+            Kind::Card => self.width,
+            _ => self.width * 120 / 140,
+        }
     }
-    let lowest = (window.bottom.min(work.bottom) - size).max(work.top);
-    let highest = window.top.max(work.top);
-    let room = u64::try_from((lowest - highest).max(0)).unwrap_or(0);
-    let y = highest + i32::try_from(height_at % (room + 1)).unwrap_or(0);
-    let mut places = Vec::new();
-    if window.left - shown >= work.left {
-        places.push(Hiding {
-            x: window.left - shown,
-            y,
-            shown,
-            hidden_on_left: false,
-        });
-    }
-    if window.right + shown <= work.right {
-        places.push(Hiding {
-            x: window.right,
-            y,
-            shown,
-            hidden_on_left: true,
-        });
-    }
-    places
 }
 
-fn at_screen_sides(work: Area, size: i32, height_at: u64) -> [Hiding; 2] {
-    let shown = shown_part(size);
-    let room = u64::try_from((work.height() - size).max(0)).unwrap_or(0);
-    let y = work.top + i32::try_from(height_at % (room + 1)).unwrap_or(0);
-    [
-        Hiding {
-            x: work.left,
-            y,
-            shown,
-            hidden_on_left: true,
-        },
-        Hiding {
-            x: work.right - shown,
-            y,
-            shown,
-            hidden_on_left: false,
-        },
-    ]
+/// Every thing on the screen, with its width at the normal scale.
+const THINGS: [(Kind, f32); 10] = [
+    (Kind::Box, 112.0),
+    (Kind::Box, 132.0),
+    (Kind::Box, 100.0),
+    (Kind::Box, 120.0),
+    (Kind::Plant, 96.0),
+    (Kind::Plant, 104.0),
+    (Kind::Basket, 118.0),
+    (Kind::Cushion, 112.0),
+    (Kind::Card, 110.0),
+    (Kind::Card, 96.0),
+];
+const COLUMNS: i32 = 4;
+const ROWS: i32 = 3;
+const FAKE_TAILS: usize = 2;
+const TAIL_PERIOD: f32 = 7.0;
+const FAKE_TAIL_PERIOD: f32 = 9.0;
+const TAIL_SHOWN: f32 = 1.5;
+const REAL_SHAKE: Shake = Shake {
+    period: 5.2,
+    delay: 0.0,
+};
+const FAKE_SHAKE: Shake = Shake {
+    period: 7.4,
+    delay: 1.6,
+};
+
+/// A small generator that is good enough to scatter things.
+fn next(state: &mut u64) -> u64 {
+    *state ^= *state << 13;
+    *state ^= *state >> 7;
+    *state ^= *state << 17;
+    *state
 }
 
-/// Behind one of the open windows, or at an edge of the screen. The edges are always possible, so
-/// that the game works on an empty desktop.
-pub fn hiding_place(windows: &[Area], work: Area, size: i32, seed: u64) -> Hiding {
-    let mut places: Vec<Hiding> = windows
-        .iter()
-        .flat_map(|window| at_window_sides(*window, work, size, seed / 7))
+#[allow(clippy::cast_possible_truncation)]
+fn pick(state: &mut u64, below: usize) -> usize {
+    (next(state) % below.max(1) as u64) as usize
+}
+
+fn shuffled<T>(items: &mut [T], state: &mut u64) {
+    for last in (1..items.len()).rev() {
+        items.swap(last, pick(state, last + 1));
+    }
+}
+
+#[allow(clippy::cast_precision_loss)]
+fn offset(state: &mut u64, period: f32) -> f32 {
+    (next(state) % 1000) as f32 / 1000.0 * period
+}
+
+/// Scatters the things on the screen, each in its own cell of a grid so that none covers another,
+/// under `top`, where the counter is. The mascot hides in anything but a cut-out, and two other
+/// things show a fake tail of their own.
+pub fn lay_out(work: Area, scale: f32, top: i32, seed: u64) -> Vec<Spot> {
+    let mut state = seed | 1;
+    let (cell_width, cell_height) = (work.width() / COLUMNS, (work.height() - top).max(1) / ROWS);
+    let mut cells: Vec<(i32, i32)> = (0..ROWS)
+        .flat_map(|row| (0..COLUMNS).map(move |column| (column, row)))
         .collect();
-    places.extend(at_screen_sides(work, size, seed / 7));
-    let count = places.len() as u64;
-    places[usize::try_from(seed % count).unwrap_or(0)]
+    shuffled(&mut cells, &mut state);
+    let biggest = cell_width.min(cell_height) * 3 / 4;
+    let mut spots: Vec<Spot> = THINGS
+        .iter()
+        .zip(&cells)
+        .map(|((kind, width), (column, row))| {
+            let width = scaled_width(*width, scale).min(biggest);
+            let mut spot = Spot {
+                kind: *kind,
+                x: 0,
+                y: 0,
+                width,
+                hides: false,
+                tail: None,
+                shake: None,
+                opened: false,
+            };
+            let room_x = u64::try_from(cell_width - width).unwrap_or(0) / 2 + 1;
+            let room_y = u64::try_from(cell_height - spot.height()).unwrap_or(0) / 2 + 1;
+            spot.x = work.left
+                + column * cell_width
+                + (cell_width - width) / 4
+                + i32::try_from(next(&mut state) % room_x).unwrap_or(0);
+            spot.y = work.top
+                + top
+                + row * cell_height
+                + (cell_height - spot.height()) / 4
+                + i32::try_from(next(&mut state) % room_y).unwrap_or(0);
+            spot
+        })
+        .collect();
+    let mut hiding_places: Vec<usize> = spots
+        .iter()
+        .enumerate()
+        .filter(|(_, spot)| spot.kind != Kind::Card)
+        .map(|(index, _)| index)
+        .collect();
+    shuffled(&mut hiding_places, &mut state);
+    let (real, others) = hiding_places.split_at(1);
+    spots[real[0]].hides = true;
+    spots[real[0]].shake = Some(REAL_SHAKE);
+    spots[real[0]].tail = Some(Tail {
+        fake: false,
+        offset: offset(&mut state, TAIL_PERIOD),
+    });
+    for index in others.iter().take(FAKE_TAILS) {
+        spots[*index].shake = Some(FAKE_SHAKE);
+        spots[*index].tail = Some(Tail {
+            fake: true,
+            offset: offset(&mut state, FAKE_TAIL_PERIOD),
+        });
+    }
+    spots
+}
+
+#[allow(clippy::cast_possible_truncation)]
+fn scaled_width(width: f32, scale: f32) -> i32 {
+    (width * scale).round() as i32
+}
+
+/// Whether a tail shows at this moment: it only does for a short while, so it has to be watched for.
+pub fn tail_shows(tail: Tail, seconds: f32) -> bool {
+    let period = if tail.fake {
+        FAKE_TAIL_PERIOD
+    } else {
+        TAIL_PERIOD
+    };
+    (seconds + tail.offset) % period < TAIL_SHOWN
+}
+
+/// The angle of a thing at this moment, still for most of its period.
+pub fn shaking(shake: Shake, seconds: f32) -> f32 {
+    const KEYS: [(f32, f32); 5] = [
+        (0.88, 0.0),
+        (0.91, -2.6),
+        (0.94, 2.2),
+        (0.97, -1.2),
+        (1.0, 0.0),
+    ];
+    let at = ((seconds - shake.delay).max(0.0) % shake.period) / shake.period;
+    let mut before = KEYS[0];
+    for key in KEYS {
+        if at < key.0 {
+            let along = ((at - before.0) / (key.0 - before.0)).max(0.0);
+            return before.1 + (key.1 - before.1) * along;
+        }
+        before = key;
+    }
+    0.0
 }
 
 /// A share of the usual wait, from half of it to one and a half times, so that visits never come
@@ -147,7 +266,7 @@ pub fn walk_out(at: i32, work: Area, speed: f32) -> Walk {
     }
 }
 
-/// `M:SS`, as the counter of hide and seek shows it.
+/// `M:SS`, as the counter of hide and seek shows the time left.
 pub fn clock(seconds: u32) -> String {
     format!("{}:{:02}", seconds / 60, seconds % 60)
 }
@@ -162,84 +281,123 @@ mod tests {
         right: 1920,
         bottom: 1032,
     };
-    const WINDOW: Area = Area {
-        left: 500,
-        top: 200,
-        right: 1400,
-        bottom: 800,
-    };
-
-    fn on_screen(place: Hiding, size: i32) {
-        assert!(
-            place.y >= WORK.top && place.y + size <= WORK.bottom,
-            "{place:?}"
-        );
-        assert!(
-            place.x >= WORK.left && place.x + place.shown <= WORK.right,
-            "{place:?}"
-        );
+    fn things(seed: u64) -> Vec<Spot> {
+        lay_out(WORK, 1.0, 80, seed)
     }
 
     #[test]
-    fn hides_on_the_side_of_a_window() {
-        let places = at_window_sides(WINDOW, WORK, 110, 40);
-        assert_eq!(places.len(), 2);
-        assert_eq!(places[0].x + places[0].shown, WINDOW.left);
-        assert!(!places[0].hidden_on_left);
-        assert_eq!(places[1].x, WINDOW.right);
-        assert!(places[1].hidden_on_left);
-        assert!(
-            places
-                .iter()
-                .all(|place| place.y >= WINDOW.top && place.y + 110 <= WINDOW.bottom)
-        );
-    }
-
-    #[test]
-    fn a_window_that_fills_the_screen_has_no_side_to_hide_behind() {
-        assert_eq!(at_window_sides(WORK, WORK, 110, 0), Vec::new());
-    }
-
-    #[test]
-    fn a_tiny_window_is_no_hiding_place() {
-        let tiny = Area {
-            left: 300,
-            top: 300,
-            right: 400,
-            bottom: 400,
-        };
-        assert_eq!(at_window_sides(tiny, WORK, 110, 0), Vec::new());
-    }
-
-    #[test]
-    fn a_window_partly_off_the_screen_keeps_the_mascot_on_it() {
-        let low = Area {
-            left: 500,
-            top: 900,
-            right: 1400,
-            bottom: 1400,
-        };
-        for seed in 0..500 {
-            for place in at_window_sides(low, WORK, 110, seed) {
-                on_screen(place, 110);
+    fn everything_stays_on_the_screen_under_the_counter() {
+        for (work, scale) in [
+            (WORK, 1.0),
+            (WORK, 1.5),
+            (
+                Area {
+                    left: -1280,
+                    top: 40,
+                    right: 0,
+                    bottom: 760,
+                },
+                1.0,
+            ),
+        ] {
+            for seed in 0..800 {
+                for spot in lay_out(work, scale, 80, seed) {
+                    assert!(
+                        spot.x >= work.left && spot.x + spot.width <= work.right,
+                        "{spot:?}"
+                    );
+                    assert!(
+                        spot.y >= work.top + 80 && spot.y + spot.height() <= work.bottom,
+                        "{spot:?}"
+                    );
+                }
             }
         }
     }
 
     #[test]
-    fn an_empty_desktop_still_has_hiding_places() {
-        for seed in 0..500 {
-            on_screen(hiding_place(&[], WORK, 110, seed), 110);
+    fn nothing_covers_anything_else() {
+        for seed in 0..800 {
+            let spots = things(seed);
+            assert_eq!(spots.len(), THINGS.len());
+            for (index, one) in spots.iter().enumerate() {
+                for other in &spots[index + 1..] {
+                    let apart = one.x + one.width <= other.x
+                        || other.x + other.width <= one.x
+                        || one.y + one.height() <= other.y
+                        || other.y + other.height() <= one.y;
+                    assert!(apart, "{one:?} {other:?}");
+                }
+            }
         }
     }
 
     #[test]
-    fn every_place_can_come_up() {
-        let places: Vec<_> = (0..400)
-            .map(|seed| hiding_place(&[WINDOW], WORK, 110, seed).hidden_on_left)
+    fn it_hides_in_one_thing_never_a_cut_out_with_two_fake_tails_elsewhere() {
+        for seed in 0..800 {
+            let spots = things(seed);
+            let hiding: Vec<_> = spots.iter().filter(|spot| spot.hides).collect();
+            assert_eq!(hiding.len(), 1);
+            assert_ne!(hiding[0].kind, Kind::Card);
+            assert!(!hiding[0].tail.unwrap().fake);
+            let fakes = spots
+                .iter()
+                .filter(|spot| spot.tail.is_some_and(|tail| tail.fake));
+            assert_eq!(fakes.clone().count(), FAKE_TAILS);
+            assert!(
+                fakes
+                    .clone()
+                    .all(|spot| spot.kind != Kind::Card && !spot.hides)
+            );
+        }
+    }
+
+    #[test]
+    fn it_can_hide_in_every_kind_of_thing() {
+        let kinds: Vec<Kind> = (0..400)
+            .flat_map(|seed| things(seed).into_iter().filter(|spot| spot.hides))
+            .map(|spot| spot.kind)
             .collect();
-        assert!(places.contains(&true) && places.contains(&false));
-        assert!((0..400).any(|seed| hiding_place(&[WINDOW], WORK, 110, seed).x == WINDOW.right));
+        for kind in [Kind::Box, Kind::Plant, Kind::Basket, Kind::Cushion] {
+            assert!(kinds.contains(&kind), "{kind:?}");
+        }
+    }
+
+    #[test]
+    fn a_tiny_screen_makes_the_things_smaller_rather_than_on_top_of_each_other() {
+        let tiny = Area {
+            left: 0,
+            top: 0,
+            right: 640,
+            bottom: 400,
+        };
+        for spot in lay_out(tiny, 2.0, 80, 7) {
+            assert!(spot.width <= 80, "{spot:?}");
+        }
+    }
+
+    #[test]
+    fn a_tail_shows_only_for_a_while() {
+        let tail = Tail {
+            fake: false,
+            offset: 0.0,
+        };
+        assert!(tail_shows(tail, 0.5));
+        assert!(!tail_shows(tail, 3.0));
+        assert!(tail_shows(tail, TAIL_PERIOD + 0.5));
+    }
+
+    #[test]
+    fn a_thing_stays_still_most_of_the_time() {
+        let shake = Shake {
+            period: 10.0,
+            delay: 0.0,
+        };
+        assert_eq!(shaking(shake, 0.0), 0.0);
+        assert_eq!(shaking(shake, 8.0), 0.0);
+        assert!((shaking(shake, 9.1) + 2.6).abs() < 0.01);
+        assert!((shaking(shake, 9.4) - 2.2).abs() < 0.01);
+        assert_eq!(shaking(shake, 10.0), 0.0);
     }
 
     #[test]

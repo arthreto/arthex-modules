@@ -74,7 +74,6 @@ struct View {
     #[serde(flatten)]
     progress: Progress,
     xp_needed: u32,
-    pets_today: u32,
     pet_goal: u32,
 }
 
@@ -86,29 +85,19 @@ struct Answer {
 }
 
 #[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct Today {
-    day: i64,
-}
-
-#[derive(Deserialize)]
 struct Adoption {
     species: Species,
     name: String,
-    day: i64,
-}
-
-#[derive(Deserialize)]
-struct Finished {
-    #[serde(flatten)]
-    game: Game,
-    day: i64,
 }
 
 #[derive(Deserialize)]
 struct Item {
     item: Option<String>,
-    day: i64,
+}
+
+#[derive(Deserialize)]
+struct WantedGame {
+    game: String,
 }
 
 #[derive(Deserialize)]
@@ -116,7 +105,6 @@ struct Item {
 struct ScreenSettings {
     on_screen: bool,
     frequency: Frequency,
-    day: i64,
 }
 
 #[derive(Deserialize)]
@@ -128,17 +116,15 @@ struct Motion {
 #[derive(Deserialize)]
 struct Word {
     word: String,
-    day: i64,
 }
 
 fn parsed<T: for<'a> Deserialize<'a>>(params: Value) -> Result<T, String> {
     serde_json::from_value(params).map_err(|error| error.to_string())
 }
 
-fn answer(progress: &mut Progress, day: i64, gain: Option<Gain>) -> Result<Value, String> {
+fn answer(progress: &Progress, gain: Option<Gain>) -> Result<Value, String> {
     serde_json::to_value(Answer {
         view: View {
-            pets_today: progress.pets_today(day),
             pet_goal: PET_GOAL,
             xp_needed: progress.xp_needed(),
             progress: progress.clone(),
@@ -148,9 +134,8 @@ fn answer(progress: &mut Progress, day: i64, gain: Option<Gain>) -> Result<Value
     .map_err(|error| error.to_string())
 }
 
-fn state(shared: &Shared, params: Value) -> Result<Value, String> {
-    let Today { day } = parsed(params)?;
-    answer(&mut shared.progress(), day, None)
+fn state(shared: &Shared) -> Result<Value, String> {
+    answer(&shared.progress(), None)
 }
 
 fn adopt(shared: &Shared, params: Value) -> Result<Value, String> {
@@ -160,31 +145,22 @@ fn adopt(shared: &Shared, params: Value) -> Result<Value, String> {
     shared.saved(&progress)?;
     #[cfg(windows)]
     shared.screen.changed();
-    answer(&mut progress, params.day, None)
+    answer(&progress, None)
 }
 
-fn tap(shared: &Shared, params: Value) -> Result<Value, String> {
-    let Today { day } = parsed(params)?;
+fn pet(shared: &Shared) -> Result<Value, String> {
     let mut progress = shared.progress();
-    let gain = progress.tap();
+    let gain = progress.pet();
     shared.saved(&progress)?;
-    answer(&mut progress, day, Some(gain))
-}
-
-fn pet(shared: &Shared, params: Value) -> Result<Value, String> {
-    let Today { day } = parsed(params)?;
-    let mut progress = shared.progress();
-    let gain = progress.pet(day);
-    shared.saved(&progress)?;
-    answer(&mut progress, day, gain)
+    answer(&progress, gain)
 }
 
 fn finish(shared: &Shared, params: Value) -> Result<Value, String> {
-    let params: Finished = parsed(params)?;
+    let game: Game = parsed(params)?;
     let mut progress = shared.progress();
-    let gain = progress.finish(params.game);
+    let gain = progress.finish(game)?;
     shared.saved(&progress)?;
-    answer(&mut progress, params.day, Some(gain))
+    answer(&progress, Some(gain))
 }
 
 fn buy(shared: &Shared, params: Value) -> Result<Value, String> {
@@ -192,7 +168,15 @@ fn buy(shared: &Shared, params: Value) -> Result<Value, String> {
     let mut progress = shared.progress();
     progress.buy(params.item.as_deref().ok_or("no item")?)?;
     shared.saved(&progress)?;
-    answer(&mut progress, params.day, None)
+    answer(&progress, None)
+}
+
+fn buy_game(shared: &Shared, params: Value) -> Result<Value, String> {
+    let params: WantedGame = parsed(params)?;
+    let mut progress = shared.progress();
+    progress.buy_game(&params.game)?;
+    shared.saved(&progress)?;
+    answer(&progress, None)
 }
 
 fn wear(shared: &Shared, params: Value) -> Result<Value, String> {
@@ -200,7 +184,7 @@ fn wear(shared: &Shared, params: Value) -> Result<Value, String> {
     let mut progress = shared.progress();
     progress.put_on(params.item.as_deref())?;
     shared.saved(&progress)?;
-    answer(&mut progress, params.day, None)
+    answer(&progress, None)
 }
 
 fn set_screen(shared: &Shared, params: Value) -> Result<Value, String> {
@@ -211,7 +195,7 @@ fn set_screen(shared: &Shared, params: Value) -> Result<Value, String> {
     shared.saved(&progress)?;
     #[cfg(windows)]
     shared.screen.changed();
-    answer(&mut progress, params.day, None)
+    answer(&progress, None)
 }
 
 /// The program has no other way to know this setting of Arthex, and needs it with the page closed.
@@ -226,17 +210,23 @@ fn set_motion(shared: &Shared, params: Value) -> Result<Value, String> {
 }
 
 #[cfg(windows)]
-fn hide_and_seek(shared: &Shared, params: Value) -> Result<Value, String> {
-    let Today { day } = parsed(params)?;
+fn hide_and_seek(shared: &Shared) -> Result<Value, String> {
+    if !shared.progress().has_game("hide") {
+        return Err("game not unlocked".to_string());
+    }
     let found = shared.screen.hide_and_seek()?;
     let mut progress = shared.progress();
-    let gain = found.then(|| progress.finish(Game::HideAndSeek));
+    let gain = if found {
+        Some(progress.finish(Game::HideAndSeek)?)
+    } else {
+        None
+    };
     shared.saved(&progress)?;
-    answer(&mut progress, day, gain)
+    answer(&progress, gain)
 }
 
 #[cfg(not(windows))]
-fn hide_and_seek(_: &Shared, _: Value) -> Result<Value, String> {
+fn hide_and_seek(_: &Shared) -> Result<Value, String> {
     Err("only on Windows".to_string())
 }
 
@@ -244,7 +234,16 @@ fn flair_status(shared: &Shared) -> Result<Value, String> {
     serde_json::to_value(shared.library.status()).map_err(|error| error.to_string())
 }
 
+fn flair_unlocked(shared: &Shared) -> Result<(), String> {
+    if shared.progress().has_game("flair") {
+        Ok(())
+    } else {
+        Err("game not unlocked".to_string())
+    }
+}
+
 fn flair_download(shared: &Arc<Shared>) -> Result<Value, String> {
+    flair_unlocked(shared)?;
     let events = shared.events.clone();
     shared.library.download(move || {
         // The interface reads the status again: losing one of these only delays what it shows.
@@ -269,6 +268,7 @@ fn seed() -> u64 {
 }
 
 fn flair_start(shared: &Shared) -> Result<Value, String> {
+    flair_unlocked(shared)?;
     let round = shared
         .library
         .new_round(seed())
@@ -302,7 +302,7 @@ fn flair_guess(shared: &Shared, params: Value) -> Result<Value, String> {
     if gain.is_some() {
         shared.saved(&progress)?;
     }
-    let answered = answer(&mut progress, params.day, gain)?;
+    let answered = answer(&progress, gain)?;
     Ok(json!({ "guess": result, "answer": answered }))
 }
 
@@ -335,18 +335,16 @@ fn main() -> std::io::Result<()> {
         let _ = starting.set(started);
     });
     let handlers: [(&str, Handler); 16] = [
-        ("state", |shared, params| state(shared, params)),
+        ("state", |shared, _| state(shared)),
         ("adopt", |shared, params| adopt(shared, params)),
-        ("tap", |shared, params| tap(shared, params)),
-        ("pet", |shared, params| pet(shared, params)),
+        ("pet", |shared, _| pet(shared)),
         ("finish", |shared, params| finish(shared, params)),
         ("buy", |shared, params| buy(shared, params)),
+        ("buyGame", |shared, params| buy_game(shared, params)),
         ("wear", |shared, params| wear(shared, params)),
         ("setScreen", |shared, params| set_screen(shared, params)),
         ("setMotion", |shared, params| set_motion(shared, params)),
-        ("hideAndSeek", |shared, params| {
-            hide_and_seek(shared, params)
-        }),
+        ("hideAndSeek", |shared, _| hide_and_seek(shared)),
         ("flairStatus", |shared, _| flair_status(shared)),
         ("flairDownload", |shared, _| flair_download(shared)),
         ("flairDelete", |shared, _| flair_delete(shared)),

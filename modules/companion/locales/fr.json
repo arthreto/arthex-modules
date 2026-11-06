@@ -11,6 +11,7 @@
   "level": "Niveau {level}",
   "xpLabel": "Expérience",
   "kibble": "+{count, plural, one {# croquette} other {# croquettes}}",
+  "locked": "{name}, verrouillé",
   "animals": {
     "fox": "Renard",
     "dog": "Chien",
@@ -48,7 +49,7 @@
   },
   "pet": {
     "action": "Caresser {name}",
-    "progress": "Caresses du jour",
+    "progress": "Caresses",
     "result": "Bien câliné"
   },
   "flair": {
@@ -73,10 +74,23 @@
   "shop": {
     "title": "Boutique",
     "balance": "{count, plural, one {# croquette} other {# croquettes}}",
+    "games": "Jeux",
+    "outfits": "Tenues",
     "scarf": "Foulard",
+    "flower": "Fleur",
+    "bell": "Clochette",
+    "cap": "Casquette",
     "glasses": "Lunettes",
     "bow": "Nœud",
+    "beanie": "Bonnet",
+    "bowtie": "Nœud papillon",
+    "sunglasses": "Lunettes de soleil",
+    "winter": "Écharpe",
+    "headphones": "Casque audio",
+    "party": "Chapeau de fête",
     "crown": "Couronne",
+    "cape": "Cape",
+    "wizard": "Chapeau de sorcier",
     "wear": "Porter",
     "remove": "Retirer",
     "price": "{count, plural, one {# croquette} other {# croquettes}}"

@@ -12,11 +12,36 @@
 
   let { species, mood = 'idle', wear = null, size = 200, label }: Props = $props();
 
+  interface WearPart {
+    layer: string;
+    d: string;
+    fill?: string;
+    opacity?: number;
+    stroke?: string;
+    width?: number;
+  }
+
   const { common } = art;
+  const OUTFITS: Record<string, WearPart[]> = art.wear;
   const look = $derived(art.species[species]);
+  const parts = $derived(wear ? (OUTFITS[wear] ?? []) : []);
   const eyesOpen = $derived(mood === 'idle' || mood === 'walk' || mood === 'sniff');
   const INK = '#241A17';
 </script>
+
+{#snippet outfit(layer: string)}
+  {#each parts.filter((part) => part.layer === layer) as part (part.d)}
+    <path
+      d={part.d}
+      fill={part.fill ?? 'none'}
+      fill-opacity={part.opacity}
+      stroke={part.stroke}
+      stroke-width={part.width}
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  {/each}
+{/snippet}
 
 <svg
   class="mascot {mood}"
@@ -35,18 +60,12 @@
       <path d={look.tailTip} fill={look.tipColor} />
     </g>
     <g class="body">
+      {@render outfit('back')}
       <path d={common.body} fill={look.main} />
       <path d={common.bib} fill={look.light} />
       <path d={common.pawLeft} fill={look.paw} />
       <path d={common.pawRight} fill={look.paw} />
-      {#if wear === 'scarf'}
-        <path d={common.scarf} fill="#E5534B" />
-        <path d={common.scarfKnot} fill="#C93F38" />
-      {:else if wear === 'bow'}
-        <path d={common.bowLeft} fill="#7C8CF8" />
-        <path d={common.bowRight} fill="#7C8CF8" />
-        <circle cx="100" cy="134" r="6" fill="#5B6BE0" />
-      {/if}
+      {@render outfit('neck')}
     </g>
     <g class="head">
       <g class="ear">
@@ -100,14 +119,7 @@
       {#if look.striped}
         <path d={common.whiskers} stroke={look.dark} stroke-width="2.2" stroke-linecap="round" />
       {/if}
-      {#if wear === 'glasses'}
-        <circle cx="74" cy="90" r="17" stroke="#1F2430" stroke-width="4" fill="#FFFFFF" fill-opacity=".12" />
-        <circle cx="126" cy="90" r="17" stroke="#1F2430" stroke-width="4" fill="#FFFFFF" fill-opacity=".12" />
-        <path d={common.glassesBridge} stroke="#1F2430" stroke-width="4" />
-      {:else if wear === 'crown'}
-        <path d={common.crown} fill="#F5C542" stroke="#D9A520" stroke-width="3" stroke-linejoin="round" />
-        <circle cx="100" cy="30" r="4" fill="#E5534B" />
-      {/if}
+      {@render outfit('head')}
     </g>
     {#if mood === 'sleep'}
       <text class="zzz" x="150" y="44" font-size="24" font-weight="700" fill="#C9CDD4">z</text>

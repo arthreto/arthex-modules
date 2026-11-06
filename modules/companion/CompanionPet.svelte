@@ -10,12 +10,15 @@
 
   const mascot = $derived(companion.mascot);
   let happy = $state(false);
+  let full = $state(false);
   let hearts = $state<number[]>([]);
   let happyTimer: ReturnType<typeof setTimeout> | undefined;
   let resultTimer: ReturnType<typeof setTimeout> | undefined;
 
+  const count = $derived(mascot ? (full ? mascot.petGoal : Math.min(mascot.pets, mascot.petGoal)) : 0);
+
   async function stroke(): Promise<void> {
-    if (!mascot || mascot.petsToday >= mascot.petGoal) return;
+    if (full) return;
     happy = true;
     hearts = [...hearts.slice(-3), Date.now()];
     clearTimeout(happyTimer);
@@ -24,8 +27,10 @@
       hearts = [];
     }, HAPPY_MS);
     const gain = await companion.pet();
-    if (gain)
+    if (gain) {
+      full = true;
       resultTimer = setTimeout(() => companion.showResult('pet', t('pet.result'), gain), RESULT_AFTER_MS);
+    }
   }
 
   onDestroy(() => {
@@ -36,7 +41,7 @@
 
 {#if mascot?.species}
   <div class="game">
-    <GameHeader title={t('games.pet')} status="{mascot.petsToday} / {mascot.petGoal}" />
+    <GameHeader title={t('games.pet')} status="{count} / {mascot.petGoal}" />
     <div class="stage">
       <button class="pet" aria-label={t('pet.action', { name: mascot.name })} onclick={() => void stroke()}>
         <Mascot species={mascot.species} mood={happy ? 'happy' : 'idle'} wear={mascot.wear} size={300} />
@@ -48,11 +53,11 @@
         class="track"
         role="progressbar"
         aria-label={t('pet.progress')}
-        aria-valuenow={mascot.petsToday}
+        aria-valuenow={count}
         aria-valuemin={0}
         aria-valuemax={mascot.petGoal}
       >
-        <span class="done" style:width="{(mascot.petsToday / mascot.petGoal) * 100}%"></span>
+        <span class="done" style:width="{(count / mascot.petGoal) * 100}%"></span>
       </span>
     </div>
   </div>
