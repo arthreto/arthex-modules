@@ -95,7 +95,9 @@
           aria-valuemin={0}
           aria-valuemax={mascot.xpNeeded}
         >
-          <span class="done" style:width="{(mascot.xp / mascot.xpNeeded) * 100}%"></span>
+          {#key mascot.level}
+            <span class="done" style:width="{(mascot.xp / mascot.xpNeeded) * 100}%"></span>
+          {/key}
         </span>
         <span class="xp">{mascot.xp} / {mascot.xpNeeded} XP</span>
       </div>
