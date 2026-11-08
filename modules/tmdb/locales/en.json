@@ -1,0 +1,120 @@
+{
+  "name": "TMDB",
+  "description": "Search for a movie, a series or a person, and browse pages, casts and trailers.",
+  "catalog": {
+    "tool": "Pages of movies, series and people, with cast, episodes, where to watch and trailers, all clickable",
+    "search": "movie, series or actor followed by a name",
+    "examples": "movie dune | actor zendaya | series dune"
+  },
+  "keywords": "tmdb movie movies series tv show actor actress cinema director cast trailer",
+  "searchWords": {
+    "movie": "movie|movies|film|films",
+    "tv": "series|serie|tv|show|shows",
+    "person": "actor|actress|actors|actresses|people",
+    "any": "tmdb"
+  },
+  "group": "TMDB",
+  "toolGroup": "Tools",
+  "toolKind": "Tool",
+  "kinds": {
+    "movie": "Movie",
+    "tv": "Series",
+    "person": "Person"
+  },
+  "departments": {
+    "acting": "Acting",
+    "directing": "Directing",
+    "writing": "Writing",
+    "production": "Production",
+    "sound": "Sound",
+    "camera": "Camera",
+    "editing": "Editing",
+    "art": "Art",
+    "costume": "Costume & make-up",
+    "crew": "Crew",
+    "effects": "Visual effects",
+    "lighting": "Lighting",
+    "creator": "Creator"
+  },
+  "statuses": {
+    "returning": "Ongoing",
+    "ended": "Ended",
+    "canceled": "Canceled",
+    "production": "In production",
+    "planned": "Planned"
+  },
+  "back": "Back",
+  "searchLabel": "Search TMDB",
+  "searchPlaceholder": "A movie, a series, a person",
+  "key": {
+    "button": "TMDB key",
+    "title": "TMDB key",
+    "field": "API read access token",
+    "placeholder": "eyJhbGciOi…",
+    "get": "Get a key",
+    "save": "Save",
+    "remove": "Remove",
+    "refused": "TMDB refuses this key"
+  },
+  "trending": "Trending this week",
+  "resultsFor": "Results for “{query}”",
+  "filters": {
+    "all": "All",
+    "movie": "Movies",
+    "tv": "Series",
+    "person": "People"
+  },
+  "filter": "Type",
+  "noResults": "No results for “{query}”",
+  "offline": "TMDB cannot be reached",
+  "retry": "Try again",
+  "failed": "Something went wrong",
+  "sections": {
+    "cast": "Cast",
+    "episodes": "Episodes",
+    "providers": "Where to watch",
+    "recommendations": "Recommendations",
+    "knownFor": "Known for",
+    "credits": "Filmography"
+  },
+  "season": "Season {number}",
+  "seasonLabel": "Season",
+  "providers": {
+    "stream": "Subscription",
+    "rent": "Rent",
+    "buy": "Buy"
+  },
+  "makers": {
+    "movie": "Directed by",
+    "tv": "Created by"
+  },
+  "trailer": "Trailer",
+  "openTmdb": "Open on TMDB",
+  "noTrailer": "No trailer for this title",
+  "votes": "{count, plural, one {# vote} other {# votes}}",
+  "outOfTen": "{rating} / 10",
+  "seasons": "{count, plural, one {# season} other {# seasons}} · {episodes, plural, one {# episode} other {# episodes}}",
+  "certification": "Rated {rating}",
+  "allAges": "All ages",
+  "noOverview": "No overview yet.",
+  "born": "Born {date}{place, select, none {} other { in {place}}}",
+  "age": "(age {age})",
+  "died": ", died {date} (age {age})",
+  "readMore": "Read more",
+  "readLess": "Show less",
+  "posterOf": "Poster of {title}",
+  "photoOf": "Photo of {name}",
+  "search": {
+    "addKey": "Add your TMDB key",
+    "addKeyDetail": "A personal key, free, pasted once",
+    "opening": "Opening",
+    "openingValue": "In TMDB, the key screen",
+    "year": "Year",
+    "rating": "Rating",
+    "overview": "Overview",
+    "department": "Department",
+    "knownFor": "Known for",
+    "searchIn": "Search “{query}” in TMDB",
+    "open": "Open page"
+  }
+}

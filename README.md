@@ -25,6 +25,8 @@ The Downloader module includes [yt-dlp](https://github.com/yt-dlp/yt-dlp), as th
 
 The QR Code module includes [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) by Kazuhiko Arase, under the MIT license, and [jsQR](https://github.com/cozmo/jsQR) by Cosmo Wolfe, under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).
 
+The TMDB module asks [TMDB](https://www.themoviedb.org) for its pages, with a free key of your own. This product uses the TMDB API but is not endorsed or certified by TMDB. Where to watch comes from [JustWatch](https://www.justwatch.com), through TMDB.
+
 The word game of the Companion module downloads its words, when it is turned on, from the [fastText](https://fasttext.cc) word vectors by Facebook AI Research, under the [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) license. They are rounded and lowered, and [published](https://github.com/arthreto/arthex-modules/releases/tag/flair-data-1) under the same license.
 
 Want to make a module? See the [developer guide](https://github.com/arthreto/Arthex/blob/main/docs/DEVELOPMENT.md#make-an-installable-module).

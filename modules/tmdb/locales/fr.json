@@ -1,0 +1,120 @@
+{
+  "name": "TMDB",
+  "description": "Cherche un film, une série ou une personne, et parcours fiches, distributions et bandes-annonces.",
+  "catalog": {
+    "tool": "Fiches des films, séries et personnes, distribution, épisodes, où regarder et bandes-annonces, tout cliquable",
+    "search": "film, série ou acteur suivi d’un nom",
+    "examples": "film dune | acteur zendaya | série dune"
+  },
+  "keywords": "tmdb film films serie series acteur actrice cinema realisateur casting bande annonce",
+  "searchWords": {
+    "movie": "film|films|movie|movies",
+    "tv": "serie|series|tv",
+    "person": "acteur|actrice|acteurs|actrices|personne",
+    "any": "tmdb"
+  },
+  "group": "TMDB",
+  "toolGroup": "Outils",
+  "toolKind": "Outil",
+  "kinds": {
+    "movie": "Film",
+    "tv": "Série",
+    "person": "Personne"
+  },
+  "departments": {
+    "acting": "Interprétation",
+    "directing": "Réalisation",
+    "writing": "Scénario",
+    "production": "Production",
+    "sound": "Son",
+    "camera": "Image",
+    "editing": "Montage",
+    "art": "Décors",
+    "costume": "Costumes et maquillage",
+    "crew": "Équipe",
+    "effects": "Effets visuels",
+    "lighting": "Lumière",
+    "creator": "Création"
+  },
+  "statuses": {
+    "returning": "En cours",
+    "ended": "Terminée",
+    "canceled": "Annulée",
+    "production": "En production",
+    "planned": "Prévue"
+  },
+  "back": "Retour",
+  "searchLabel": "Rechercher dans TMDB",
+  "searchPlaceholder": "Un film, une série, une personne",
+  "key": {
+    "button": "Clé TMDB",
+    "title": "Clé TMDB",
+    "field": "Jeton d’accès en lecture",
+    "placeholder": "eyJhbGciOi…",
+    "get": "Obtenir une clé",
+    "save": "Enregistrer",
+    "remove": "Retirer",
+    "refused": "TMDB refuse cette clé"
+  },
+  "trending": "Tendances de la semaine",
+  "resultsFor": "Résultats pour « {query} »",
+  "filters": {
+    "all": "Tout",
+    "movie": "Films",
+    "tv": "Séries",
+    "person": "Personnes"
+  },
+  "filter": "Type",
+  "noResults": "Aucun résultat pour « {query} »",
+  "offline": "Impossible de joindre TMDB",
+  "retry": "Réessayer",
+  "failed": "Une erreur est survenue",
+  "sections": {
+    "cast": "Distribution",
+    "episodes": "Épisodes",
+    "providers": "Où regarder",
+    "recommendations": "Recommandations",
+    "knownFor": "Connu pour",
+    "credits": "Filmographie"
+  },
+  "season": "Saison {number}",
+  "seasonLabel": "Saison",
+  "providers": {
+    "stream": "Abonnement",
+    "rent": "Location",
+    "buy": "Achat"
+  },
+  "makers": {
+    "movie": "Réalisation :",
+    "tv": "Création :"
+  },
+  "trailer": "Bande-annonce",
+  "openTmdb": "Ouvrir sur TMDB",
+  "noTrailer": "Pas de bande-annonce pour ce titre",
+  "votes": "{count, plural, one {# vote} other {# votes}}",
+  "outOfTen": "{rating} / 10",
+  "seasons": "{count, plural, one {# saison} other {# saisons}} · {episodes, plural, one {# épisode} other {# épisodes}}",
+  "certification": "Interdit aux moins de {rating} ans",
+  "allAges": "Tous publics",
+  "noOverview": "Pas encore de résumé.",
+  "born": "{gender, select, female {Née} other {Né}} le {date}{place, select, none {} other { à {place}}}",
+  "age": "({age} ans)",
+  "died": ", {gender, select, female {morte} other {mort}} le {date} ({age} ans)",
+  "readMore": "Lire la suite",
+  "readLess": "Réduire",
+  "posterOf": "Affiche de {title}",
+  "photoOf": "Photo de {name}",
+  "search": {
+    "addKey": "Ajouter ta clé TMDB",
+    "addKeyDetail": "Une clé personnelle et gratuite, à coller une fois",
+    "opening": "Ouverture",
+    "openingValue": "Dans TMDB, l’écran de la clé",
+    "year": "Année",
+    "rating": "Note",
+    "overview": "Résumé",
+    "department": "Métier",
+    "knownFor": "Connu pour",
+    "searchIn": "Rechercher « {query} » dans TMDB",
+    "open": "Ouvrir la fiche"
+  }
+}
