@@ -7,7 +7,7 @@ openWhenAsked();
 
 export default defineModule({
   id: ID,
-  version: '1.0.0',
+  version: '1.0.1',
   api: 6,
   icon: ICON,
   tint: TINT,

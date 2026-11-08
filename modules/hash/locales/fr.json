@@ -6,7 +6,7 @@
     "search": "Un algorithme et un texte, ou un hash collé",
     "examples": "sha256 bonjour | hash Arthex | md5 test"
   },
-  "keywords": "hash empreinte checksum somme de controle md5 sha1 sha256 sha512 sha3 keccak blake2 blake3 ripemd crc32 adler xxhash hmac mot de passe argon2 bcrypt scrypt pbkdf2 cle uuid aleatoire",
+  "keywords": "hash empreinte checksum somme de controle md5 sha1 sha256 sha512 sha3 keccak blake2 blake3 ripemd crc32 adler xxhash hmac mot passe argon2 bcrypt scrypt pbkdf2 cle uuid aleatoire",
   "contextMenu": {
     "hash": "Calculer le hash"
   },
