@@ -12,8 +12,18 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const bundle = path.join(here, 'bundle');
 const tools = JSON.parse(fs.readFileSync(path.join(here, 'tools.json'), 'utf8'));
 
+// GitHub's release downloads sometimes answer 504 for a while.
+async function fetchRetried(url) {
+  for (let attempt = 1; ; attempt += 1) {
+    const response = await fetch(url).catch((error) => ({ ok: false, status: error.message }));
+    const lasting = typeof response.status === 'number' && response.status < 500;
+    if (response.ok || lasting || attempt === 5) return response;
+    await new Promise((resolve) => setTimeout(resolve, 2000 * 2 ** attempt));
+  }
+}
+
 async function fetchChecked(url, sha256) {
-  const response = await fetch(url);
+  const response = await fetchRetried(url);
   if (!response.ok) throw new Error(`could not download ${url}: ${response.status}`);
   const content = Buffer.from(await response.arrayBuffer());
   const hash = createHash('sha256').update(content).digest('hex');

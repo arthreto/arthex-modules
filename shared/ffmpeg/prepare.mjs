@@ -14,8 +14,20 @@ const SHA256 = 'd4c2a42673917b4a97104a3e9f082729a9730796b98664e37c0b7eba6c6c613d
 
 const bundle = path.join(path.dirname(fileURLToPath(import.meta.url)), 'bundle');
 
+// GitHub's release downloads sometimes answer 504 for a while.
+async function fetchRetried(url) {
+  for (let attempt = 1; ; attempt += 1) {
+    const response = await fetch(url).catch((error) => ({ ok: false, status: error.message }));
+    const lasting = typeof response.status === 'number' && response.status < 500;
+    if (response.ok || lasting || attempt === 5) return response;
+    await new Promise((resolve) => setTimeout(resolve, 2000 * 2 ** attempt));
+  }
+}
+
 if (process.platform === 'win32' && !fs.existsSync(path.join(bundle, 'ffmpeg.exe'))) {
-  const response = await fetch(`https://github.com/BtbN/FFmpeg-Builds/releases/download/${TAG}/${NAME}.zip`);
+  const response = await fetchRetried(
+    `https://github.com/BtbN/FFmpeg-Builds/releases/download/${TAG}/${NAME}.zip`,
+  );
   if (!response.ok) throw new Error(`could not download FFmpeg: ${response.status}`);
   const archive = Buffer.from(await response.arrayBuffer());
   const hash = createHash('sha256').update(archive).digest('hex');
