@@ -1,0 +1,47 @@
+[package]
+name = "hash"
+version = "1.0.0"
+edition = "2024"
+rust-version = "1.88"
+publish = false
+
+[dependencies]
+adler2 = "2.0.1"
+argon2 = { version = "0.5", default-features = false, features = ["alloc"] }
+arthex-module = { path = "../../../arthex/sdk/native" }
+bcrypt = "0.17"
+blake2 = "0.10"
+blake3 = "1.8.7"
+crc = "3.4.0"
+digest = "0.10"
+getrandom = "0.3"
+hmac = "0.12"
+md-5 = "0.10"
+pbkdf2 = { version = "0.12", default-features = false, features = ["hmac"] }
+ripemd = "0.1"
+scrypt = { version = "0.11", default-features = false }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+sha1 = "0.10"
+sha2 = "0.10"
+sha3 = "0.10"
+xxhash-rust = { version = "0.8.19", features = ["xxh64"] }
+
+[target.'cfg(windows)'.dependencies]
+rfd = "0.15"
+
+[profile.release]
+codegen-units = 1
+lto = true
+panic = "abort"
+strip = true
+
+# The password hashes are slow on purpose, and much slower still unoptimised: the tests need speed.
+[profile.dev.package."*"]
+opt-level = 3
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
