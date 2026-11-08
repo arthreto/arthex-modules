@@ -45,8 +45,8 @@
               {t(`games.${game.id}`)}
             </span>
             <span class="gains">
-              <span class="xp">+{game.xp} XP</span>
-              <span class="kibble">{t('kibble', { count: game.kibble })}</span>
+              <span class="xp">+{game.xp + mascot.level} XP</span>
+              <span class="kibble">{t('kibble', { count: game.kibble + mascot.level })}</span>
             </span>
             <Button
               variant={owned ? 'default' : 'primary'}

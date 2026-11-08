@@ -124,6 +124,11 @@ pub fn word_reward(tries: u32) -> (u32, u32) {
     )
 }
 
+/// The kibble that comes with leaving `level` for the next one.
+const fn level_bonus(level: u32) -> u32 {
+    5 + level.saturating_sub(1) * 5 / 2
+}
+
 const fn default_on() -> bool {
     true
 }
@@ -198,20 +203,39 @@ impl Progress {
         Ok(())
     }
 
-    pub fn grant(&mut self, xp: u32, kibble: u32) -> Gain {
-        self.kibble = self.kibble.saturating_add(kibble);
-        self.xp = self.xp.saturating_add(xp);
-        let mut level_up = false;
-        while self.xp >= self.xp_needed() {
-            self.xp -= self.xp_needed();
-            self.level += 1;
-            level_up = true;
+    /// A reward grows with the level, and each level passed adds kibble of its own.
+    fn outcome(&self, xp: u32, kibble: u32) -> (Gain, u32, u32) {
+        let xp = xp.saturating_add(self.level);
+        let mut kibble = kibble.saturating_add(self.level);
+        let first = self.level.max(1);
+        let mut level = first;
+        let mut left = self.xp.saturating_add(xp);
+        while left >= level * XP_PER_LEVEL {
+            left -= level * XP_PER_LEVEL;
+            kibble = kibble.saturating_add(level_bonus(level));
+            level += 1;
         }
-        Gain {
+        let gain = Gain {
             xp,
             kibble,
-            level_up,
-        }
+            level_up: level > first,
+        };
+        (gain, level, left)
+    }
+
+    /// What a game would give now, for the screen that says so before it is granted.
+    #[cfg_attr(not(windows), allow(dead_code))]
+    pub fn would_gain(&self, game: Game) -> Gain {
+        let (xp, kibble) = game.reward();
+        self.outcome(xp, kibble).0
+    }
+
+    pub fn grant(&mut self, xp: u32, kibble: u32) -> Gain {
+        let (gain, level, left) = self.outcome(xp, kibble);
+        self.level = level;
+        self.xp = left;
+        self.kibble = self.kibble.saturating_add(gain.kibble);
+        gain
     }
 
     /// A game that costs nothing is everybody's from the start.
@@ -311,16 +335,43 @@ mod tests {
     #[test]
     fn experience_carries_over_to_the_next_level() {
         let mut progress = adopted();
-        let gain = progress.grant(55, 5);
+        let gain = progress.grant(54, 5);
         assert!(gain.level_up);
-        assert_eq!((progress.level, progress.xp, progress.kibble), (2, 5, 5));
+        assert_eq!((gain.xp, gain.kibble), (55, 11));
+        assert_eq!((progress.level, progress.xp, progress.kibble), (2, 5, 11));
     }
 
     #[test]
     fn a_big_gain_can_pass_several_levels() {
         let mut progress = adopted();
-        progress.grant(50 + 100 + 3, 0);
+        let gain = progress.grant(50 + 100 + 2, 0);
         assert_eq!((progress.level, progress.xp), (3, 3));
+        assert_eq!(gain.kibble, 1 + 5 + 7);
+    }
+
+    #[test]
+    fn rewards_grow_with_the_level() {
+        let mut progress = adopted();
+        progress.level = 4;
+        assert_eq!(
+            progress.grant(30, 30),
+            Gain {
+                xp: 34,
+                kibble: 34,
+                level_up: false
+            }
+        );
+        assert_eq!(progress.would_gain(Game::HideAndSeek).xp, 44);
+    }
+
+    #[test]
+    fn what_a_game_would_give_is_what_it_gives() {
+        let mut progress = adopted();
+        progress.games.push("hide".to_string());
+        progress.xp = 40;
+        let expected = progress.would_gain(Game::HideAndSeek);
+        assert_eq!(progress.finish(Game::HideAndSeek), Ok(expected));
+        assert!(expected.level_up);
     }
 
     #[test]
@@ -348,10 +399,10 @@ mod tests {
                 assert_eq!(progress.pet(), None);
             }
             let gain = progress.pet().unwrap();
-            assert_eq!((gain.xp, gain.kibble), (10, 10));
+            assert_eq!((gain.xp, gain.kibble), (11, 11));
             assert_eq!(progress.pets, 0);
         }
-        assert_eq!(progress.kibble, 20);
+        assert_eq!(progress.kibble, 22);
     }
 
     #[test]

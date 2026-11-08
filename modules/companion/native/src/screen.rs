@@ -1075,6 +1075,7 @@ impl Screen {
     /// The mascot comes out of its hiding place, says how it went and leaves on its own.
     fn finish_hunt(&mut self, found: bool) {
         let (scale, texts) = (self.scale, self.texts);
+        let gain = self.shared.progress().would_gain(Game::HideAndSeek);
         let Some(hunt) = &mut self.hunt else {
             return;
         };
@@ -1095,10 +1096,12 @@ impl Screen {
             x,
             y,
         });
-        let (xp, kibble) = Game::HideAndSeek.reward();
         let panel = if found {
             text_panel(
-                &[(&format!("+{xp} XP"), XP), (&texts.kibble(kibble), COUNTER)],
+                &[
+                    (&format!("+{} XP", gain.xp), XP),
+                    (&texts.kibble(gain.kibble), COUNTER),
+                ],
                 false,
                 scale,
             )
