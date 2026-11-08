@@ -25,6 +25,8 @@
     "vitest": "^5.1.0"
   },
   "dependencies": {
+    "jsqr": "^1.4.0",
+    "qrcode-generator": "^1.4.4",
     "temml": "^0.14.0"
   }
 }
