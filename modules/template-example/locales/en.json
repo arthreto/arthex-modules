@@ -1,0 +1,93 @@
+{
+  "name": "Template Example",
+  "description": "Creates a sample file for testing: picture, text, document, sound, video or an exact size.",
+  "catalog": {
+    "tool": "A sample file in the format you want: bundled pictures, text and code, documents, sound and video, archive or exact size",
+    "examples": "sample file|template example"
+  },
+  "keywords": "template example sample file test new create picture text csv json pdf docx audio video zip size",
+  "contextMenu": {
+    "create": "Create a sample file"
+  },
+  "folder": "Folder",
+  "change": "Change",
+  "nameLabel": "Name",
+  "defaultName": "sample",
+  "formatLabel": "Format",
+  "familyLabel": "Family",
+  "formatsLabel": "Formats",
+  "families": {
+    "image": "Pictures",
+    "text": "Text",
+    "code": "Code",
+    "document": "Documents",
+    "audio": "Audio",
+    "video": "Video",
+    "archive": "Archive",
+    "sized": "Exact size"
+  },
+  "nameProblems": {
+    "empty": "Give the file a name",
+    "characters": "A name cannot contain \\ / : * ? \" < > |",
+    "reserved": "Windows does not accept this name"
+  },
+  "pictureLabel": "Picture",
+  "pictures": {
+    "landscape": "Landscape",
+    "portrait": "Portrait",
+    "city": "City",
+    "animal": "Animal",
+    "food": "Food",
+    "object": "Object",
+    "alpha": "Transparency",
+    "text": "Text"
+  },
+  "contentLabel": "Content",
+  "pixels": "Size in pixels",
+  "original": "Original",
+  "rows": "Lines",
+  "pages": "Pages",
+  "duration": "Duration",
+  "durations": { "5": "5 s", "30": "30 s", "60": "1 min", "600": "10 min" },
+  "resolution": "Resolution",
+  "files": "Files",
+  "size": "Size",
+  "unit": "Unit",
+  "units": { "kb": "KB", "mb": "MB", "gb": "GB" },
+  "sizeRange": "From 1 KB to 10 GB",
+  "fill": { "zeros": "Zeros", "random": "Random" },
+  "contents": {
+    "pdf": "A title and paragraphs|A table of 5 rows|A picture|Page numbers",
+    "docx": "A title and subtitles|Paragraphs and a list|A table of 5 rows|A picture",
+    "xlsx": "A sheet of fictitious people|Dates, numbers and amounts|A row of totals with formulas",
+    "pptx": "A title slide|A slide with a list|A slide with a picture",
+    "odt": "A title and paragraphs|A list and a table",
+    "wav": "A 1 kHz beep, then silence|Mono, 44.1 kHz",
+    "mp3": "A 1 kHz beep, then silence|Mono, 128 kbit/s",
+    "ogg": "A 1 kHz beep, then silence|Mono, Vorbis",
+    "flac": "A 1 kHz beep, then silence|Mono, lossless",
+    "mp4": "A test pattern with a counter|A beep every second|H.264 and AAC",
+    "webm": "A test pattern with a counter|A beep every second|VP9 and Opus",
+    "mkv": "A test pattern with a counter|A beep every second|H.264 and AAC",
+    "zip": "Text files, a picture and a PDF|In two subfolders"
+  },
+  "summary": {
+    "fixed": "Fixed content, in UTF-8",
+    "rows": "{count, plural, one {# line} other {# lines}}",
+    "pages": "{count, plural, one {# page} other {# pages}}",
+    "files": "{count, plural, one {# file} other {# files}}",
+    "exists": "{file} already exists",
+    "zeros": "zeros",
+    "random": "random",
+    "sizeToFix": "Size to fix"
+  },
+  "cancel": "Cancel",
+  "create": "Create",
+  "created": "{file} created in {folder}",
+  "folderGone": "This folder no longer exists",
+  "failed": {
+    "space": "Not enough space for {file}",
+    "ffmpeg": "FFmpeg is missing: reinstall the module",
+    "other": "Could not create {file}"
+  }
+}

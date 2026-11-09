@@ -1,0 +1,93 @@
+{
+  "name": "Template Example",
+  "description": "Crée un fichier d’exemple pour tester : image, texte, document, son, vidéo ou une taille précise.",
+  "catalog": {
+    "tool": "Un fichier d’exemple dans le format voulu : images incluses, texte et code, documents, son et vidéo, archive ou taille précise",
+    "examples": "fichier exemple|template example"
+  },
+  "keywords": "template example exemple fichier test nouveau creer image texte csv json pdf docx audio video zip taille",
+  "contextMenu": {
+    "create": "Créer un fichier exemple"
+  },
+  "folder": "Dossier",
+  "change": "Changer",
+  "nameLabel": "Nom",
+  "defaultName": "exemple",
+  "formatLabel": "Format",
+  "familyLabel": "Famille",
+  "formatsLabel": "Formats",
+  "families": {
+    "image": "Images",
+    "text": "Texte",
+    "code": "Code",
+    "document": "Documents",
+    "audio": "Audio",
+    "video": "Vidéo",
+    "archive": "Archive",
+    "sized": "Taille précise"
+  },
+  "nameProblems": {
+    "empty": "Donne un nom au fichier",
+    "characters": "Un nom ne peut pas contenir \\ / : * ? \" < > |",
+    "reserved": "Windows n’accepte pas ce nom"
+  },
+  "pictureLabel": "Image",
+  "pictures": {
+    "landscape": "Paysage",
+    "portrait": "Portrait",
+    "city": "Ville",
+    "animal": "Animal",
+    "food": "Nourriture",
+    "object": "Objet",
+    "alpha": "Transparence",
+    "text": "Texte"
+  },
+  "contentLabel": "Contenu",
+  "pixels": "Taille en pixels",
+  "original": "Originale",
+  "rows": "Lignes",
+  "pages": "Pages",
+  "duration": "Durée",
+  "durations": { "5": "5 s", "30": "30 s", "60": "1 min", "600": "10 min" },
+  "resolution": "Résolution",
+  "files": "Fichiers",
+  "size": "Taille",
+  "unit": "Unité",
+  "units": { "kb": "Ko", "mb": "Mo", "gb": "Go" },
+  "sizeRange": "De 1 Ko à 10 Go",
+  "fill": { "zeros": "Zéros", "random": "Aléatoire" },
+  "contents": {
+    "pdf": "Un titre et des paragraphes|Un tableau de 5 lignes|Une image incluse|Des numéros de page",
+    "docx": "Un titre et des sous-titres|Des paragraphes et une liste|Un tableau de 5 lignes|Une image incluse",
+    "xlsx": "Une feuille de personnes fictives|Des dates, des nombres et des montants|Une ligne de totaux avec formules",
+    "pptx": "Une diapositive de titre|Une diapositive avec une liste|Une diapositive avec une image",
+    "odt": "Un titre et des paragraphes|Une liste et un tableau",
+    "wav": "Un bip de 1 kHz, puis un silence|Mono, 44,1 kHz",
+    "mp3": "Un bip de 1 kHz, puis un silence|Mono, 128 kbit/s",
+    "ogg": "Un bip de 1 kHz, puis un silence|Mono, Vorbis",
+    "flac": "Un bip de 1 kHz, puis un silence|Mono, sans perte",
+    "mp4": "Une mire de test avec un compteur|Un bip à chaque seconde|H.264 et AAC",
+    "webm": "Une mire de test avec un compteur|Un bip à chaque seconde|VP9 et Opus",
+    "mkv": "Une mire de test avec un compteur|Un bip à chaque seconde|H.264 et AAC",
+    "zip": "Des fichiers texte, une image et un PDF|Rangés dans deux sous-dossiers"
+  },
+  "summary": {
+    "fixed": "Contenu fixe, en UTF-8",
+    "rows": "{count, plural, one {# ligne} other {# lignes}}",
+    "pages": "{count, plural, one {# page} other {# pages}}",
+    "files": "{count, plural, one {# fichier} other {# fichiers}}",
+    "exists": "{file} existe déjà",
+    "zeros": "zéros",
+    "random": "aléatoire",
+    "sizeToFix": "Taille à corriger"
+  },
+  "cancel": "Annuler",
+  "create": "Créer",
+  "created": "{file} créé dans {folder}",
+  "folderGone": "Ce dossier n’existe plus",
+  "failed": {
+    "space": "Pas assez de place pour {file}",
+    "ffmpeg": "FFmpeg manque : réinstalle le module",
+    "other": "Impossible de créer {file}"
+  }
+}

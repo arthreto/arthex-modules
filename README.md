@@ -29,6 +29,8 @@ The TMDB module asks [TMDB](https://www.themoviedb.org) for its pages, with a fr
 
 The word game of the Companion module downloads its words, when it is turned on, from the [fastText](https://fasttext.cc) word vectors by Facebook AI Research, under the [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) license. They are rounded and lowered, and [published](https://github.com/arthreto/arthex-modules/releases/tag/flair-data-1) under the same license.
 
+The Template Example module includes eight photos from [Wikimedia Commons](https://commons.wikimedia.org), in the public domain, by Wilfredor, Martinus Rørbye, Pierre Blaché, W.carter and PxHere, and a front page of the New-York Tribune of 1912. They are cropped and resized.
+
 Want to make a module? See the [developer guide](https://github.com/arthreto/Arthex/blob/main/docs/DEVELOPMENT.md#make-an-installable-module).
 
 Released under the [PolyForm Noncommercial 1.0.0](https://github.com/arthreto/Arthex/blob/main/LICENSE) license, as Arthex.
