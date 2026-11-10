@@ -1,0 +1,45 @@
+{
+  "name": "Synthèse vocale",
+  "description": "Transforme un texte en voix, en français et en anglais.",
+  "catalog": {
+    "tool": "Onze voix, dont une voix grave, en français et en anglais, à écouter puis à enregistrer en WAV ou MP3",
+    "examples": "synthèse vocale|tts"
+  },
+  "keywords": "synthese vocale voix lire texte parole audio text to speech dicter narration",
+  "language": "Langue",
+  "languages": {
+    "fr": "Français",
+    "en": "English"
+  },
+  "text": "Texte",
+  "placeholder": "Écris ou colle le texte à dire",
+  "sample": "Bonjour et bienvenue ! Cette voix est créée sur ton ordinateur, à partir du texte que tu écris ici. Change la voix, la langue ou la vitesse, puis écoute le résultat.",
+  "characters": "{count, plural, one {# caractère} other {# caractères}}",
+  "paste": "Coller",
+  "voice": "Voix",
+  "voices": {
+    "woman": "Femme {number}",
+    "man": "Homme {number}",
+    "deep": "Grave"
+  },
+  "speed": "Vitesse",
+  "engine": "Voix",
+  "download": "Télécharger",
+  "downloading": "Téléchargement",
+  "ready": "Voix prête",
+  "making": "Création de la voix",
+  "cancel": "Annuler",
+  "listen": "Écouter",
+  "pause": "Pause",
+  "playback": "Lecture",
+  "format": "Format",
+  "save": "Enregistrer",
+  "generate": "Générer",
+  "saved": "{file} enregistré dans Musique",
+  "failures": {
+    "download": "Le téléchargement a échoué",
+    "speak": "La voix n’a pas pu être créée",
+    "save": "L’enregistrement a échoué",
+    "other": "Ça n’a pas marché"
+  }
+}

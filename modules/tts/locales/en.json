@@ -1,0 +1,45 @@
+{
+  "name": "Text to speech",
+  "description": "Turns a text into a voice, in French and in English.",
+  "catalog": {
+    "tool": "Eleven voices, a deep one among them, in French and in English, to listen to and then save as WAV or MP3",
+    "examples": "text to speech|tts"
+  },
+  "keywords": "speech voice read text audio narration dictate synthese vocale voix",
+  "language": "Language",
+  "languages": {
+    "fr": "Français",
+    "en": "English"
+  },
+  "text": "Text",
+  "placeholder": "Type or paste the text to say",
+  "sample": "Hello and welcome! This voice is made on your computer, from the text you write here. Change the voice, the language or the speed, then listen to the result.",
+  "characters": "{count, plural, one {# character} other {# characters}}",
+  "paste": "Paste",
+  "voice": "Voice",
+  "voices": {
+    "woman": "Woman {number}",
+    "man": "Man {number}",
+    "deep": "Deep"
+  },
+  "speed": "Speed",
+  "engine": "Voices",
+  "download": "Download",
+  "downloading": "Downloading",
+  "ready": "Voices ready",
+  "making": "Making the voice",
+  "cancel": "Cancel",
+  "listen": "Listen",
+  "pause": "Pause",
+  "playback": "Playback",
+  "format": "Format",
+  "save": "Save",
+  "generate": "Generate",
+  "saved": "{file} saved in Music",
+  "failures": {
+    "download": "The download failed",
+    "speak": "The voice could not be made",
+    "save": "Saving failed",
+    "other": "That did not work"
+  }
+}
