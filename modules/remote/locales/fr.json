@@ -1,0 +1,104 @@
+{
+  "name": "Connexions distantes",
+  "description": "Tes serveurs SFTP, FTP et FTPS en lecteurs dans l’Explorateur.",
+  "catalog": {
+    "examples": "vps|nas",
+    "page": "Connexions SFTP, FTP et FTPS, chacune montée en lecteur dans l’Explorateur"
+  },
+  "newConnection": "Nouvelle connexion",
+  "newName": "Nouvelle connexion",
+  "copyName": "{name} (copie)",
+  "nothingSelected": "Aucune connexion",
+  "starts": {
+    "sftp": "Par SSH",
+    "ftp": "Sans chiffrement",
+    "ftps": "FTP chiffré"
+  },
+  "protocols": {
+    "sftp": "SFTP (SSH)",
+    "ftp": "FTP",
+    "ftps": "FTPS"
+  },
+  "connectionName": "Nom de la connexion",
+  "duplicate": "Dupliquer la connexion",
+  "remove": "Supprimer la connexion",
+  "connect": "Connecter",
+  "connecting": "Connexion…",
+  "disconnect": "Déconnecter",
+  "open": "Ouvrir {place}",
+  "connectNamed": "Connecter {name}",
+  "disconnectNamed": "Déconnecter {name}",
+  "status": {
+    "off": "Déconnecté",
+    "busy": "Connexion…",
+    "on": "Connecté en {place}",
+    "onFolder": "Connecté",
+    "failed": "Échec de la connexion"
+  },
+  "errors": {
+    "unreachable": "Serveur injoignable",
+    "refusedPassword": "Mot de passe refusé par le serveur",
+    "refusedKey": "Clé refusée par le serveur",
+    "changedHost": "La clé du serveur a changé : connexion refusée",
+    "certificate": "Le certificat du serveur a été refusé",
+    "badKey": "La clé n’a pas pu être lue : vérifie sa phrase de passe",
+    "noFolder": "Ce dossier n’existe pas sur le serveur",
+    "letterTaken": "La lettre {letter}: est déjà utilisée",
+    "system": "Windows a refusé le lecteur",
+    "other": "Échec de la connexion",
+    "notKey": "Ce fichier n’est pas une clé privée"
+  },
+  "sections": {
+    "server": "Serveur",
+    "login": "Identification",
+    "drive": "Lecteur"
+  },
+  "protocol": "Protocole",
+  "address": "Adresse",
+  "addressHint": "exemple.com ou 203.0.113.10",
+  "port": "Port",
+  "auth": "Identification",
+  "auths": {
+    "password": "Mot de passe",
+    "key": "Clé SSH",
+    "anonymous": "Anonyme"
+  },
+  "user": "Utilisateur",
+  "password": "Mot de passe",
+  "savedSecret": "••••••••",
+  "showPassword": "Afficher le mot de passe",
+  "hidePassword": "Masquer le mot de passe",
+  "key": "Clé privée",
+  "noKey": "Aucune clé",
+  "pickKey": "Choisir…",
+  "passphrase": "Phrase de passe",
+  "optional": "Facultative",
+  "letter": "Lettre",
+  "noLetter": "Aucune",
+  "folder": "Dossier du serveur",
+  "autoConnect": "Se connecter au démarrage",
+  "trust": {
+    "title": "Nouveau serveur",
+    "text": "Première connexion à {host}. Vérifie que son empreinte est bien celle de ton serveur.",
+    "kind": "Empreinte {algorithm}",
+    "action": "Faire confiance"
+  },
+  "removeTitle": "Supprimer {name} ?",
+  "removeText": "Le lecteur est retiré de ce PC. Rien n’est effacé sur le serveur.",
+  "removeAction": "Supprimer",
+  "cancel": "Annuler",
+  "removed": "{name} supprimé",
+  "connected": "{name} connecté en {place}",
+  "connectedFolder": "{name} connecté",
+  "disconnected": "{name} déconnecté",
+  "loadFailed": "Impossible de lire les connexions",
+  "saveFailed": "Impossible d’enregistrer les connexions",
+  "search": {
+    "group": "Connexions distantes",
+    "kind": "Connexion distante",
+    "edit": "Modifier",
+    "protocol": "Protocole",
+    "server": "Serveur",
+    "drive": "Lecteur"
+  }
+}

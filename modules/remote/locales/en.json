@@ -1,0 +1,104 @@
+{
+  "name": "Remote Connections",
+  "description": "Your SFTP, FTP and FTPS servers as drives in Explorer.",
+  "catalog": {
+    "examples": "vps|nas",
+    "page": "SFTP, FTP and FTPS connections, each mounted as a drive in Explorer"
+  },
+  "newConnection": "New connection",
+  "newName": "New connection",
+  "copyName": "{name} (copy)",
+  "nothingSelected": "No connection",
+  "starts": {
+    "sftp": "Over SSH",
+    "ftp": "Unencrypted",
+    "ftps": "Encrypted FTP"
+  },
+  "protocols": {
+    "sftp": "SFTP (SSH)",
+    "ftp": "FTP",
+    "ftps": "FTPS"
+  },
+  "connectionName": "Connection name",
+  "duplicate": "Duplicate the connection",
+  "remove": "Delete the connection",
+  "connect": "Connect",
+  "connecting": "Connecting…",
+  "disconnect": "Disconnect",
+  "open": "Open {place}",
+  "connectNamed": "Connect {name}",
+  "disconnectNamed": "Disconnect {name}",
+  "status": {
+    "off": "Disconnected",
+    "busy": "Connecting…",
+    "on": "Connected as {place}",
+    "onFolder": "Connected",
+    "failed": "Connection failed"
+  },
+  "errors": {
+    "unreachable": "Server out of reach",
+    "refusedPassword": "Password refused by the server",
+    "refusedKey": "Key refused by the server",
+    "changedHost": "The server's key has changed: connection refused",
+    "certificate": "The server's certificate was refused",
+    "badKey": "The key could not be read: check its passphrase",
+    "noFolder": "This folder does not exist on the server",
+    "letterTaken": "The letter {letter}: is already in use",
+    "system": "Windows refused the drive",
+    "other": "Connection failed",
+    "notKey": "This file is not a private key"
+  },
+  "sections": {
+    "server": "Server",
+    "login": "Login",
+    "drive": "Drive"
+  },
+  "protocol": "Protocol",
+  "address": "Address",
+  "addressHint": "example.com or 203.0.113.10",
+  "port": "Port",
+  "auth": "Login",
+  "auths": {
+    "password": "Password",
+    "key": "SSH key",
+    "anonymous": "Anonymous"
+  },
+  "user": "User",
+  "password": "Password",
+  "savedSecret": "••••••••",
+  "showPassword": "Show the password",
+  "hidePassword": "Hide the password",
+  "key": "Private key",
+  "noKey": "No key",
+  "pickKey": "Choose…",
+  "passphrase": "Passphrase",
+  "optional": "Optional",
+  "letter": "Letter",
+  "noLetter": "None",
+  "folder": "Server folder",
+  "autoConnect": "Connect at startup",
+  "trust": {
+    "title": "New server",
+    "text": "First connection to {host}. Check that this fingerprint is the one of your server.",
+    "kind": "{algorithm} fingerprint",
+    "action": "Trust"
+  },
+  "removeTitle": "Delete {name}?",
+  "removeText": "The drive is removed from this PC. Nothing is deleted on the server.",
+  "removeAction": "Delete",
+  "cancel": "Cancel",
+  "removed": "{name} deleted",
+  "connected": "{name} connected as {place}",
+  "connectedFolder": "{name} connected",
+  "disconnected": "{name} disconnected",
+  "loadFailed": "Could not read the connections",
+  "saveFailed": "Could not save the connections",
+  "search": {
+    "group": "Remote connections",
+    "kind": "Remote connection",
+    "edit": "Edit",
+    "protocol": "Protocol",
+    "server": "Server",
+    "drive": "Drive"
+  }
+}
